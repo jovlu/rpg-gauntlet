@@ -82,7 +82,7 @@ export default function Map() {
     setEnemiesError(null);
 
     try {
-      const response = await fetch(apiUrl("/getenemies"));
+      const response = await fetch(apiUrl("/enemies"));
       const data = (await response.json()) as
         | { enemies: Enemy[] }
         | { error: string };
