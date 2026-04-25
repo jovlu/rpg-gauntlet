@@ -1,9 +1,48 @@
 .home-screen {
   background:
-    linear-gradient(rgba(4, 9, 18, 0.48), rgba(4, 9, 18, 0.66)),
-    linear-gradient(90deg, rgba(32, 60, 90, 0.08) 1px, transparent 1px),
-    linear-gradient(rgba(32, 60, 90, 0.08) 1px, transparent 1px);
-  background-size: auto, 28px 28px, 28px 28px;
+    linear-gradient(rgba(4, 9, 18, 0.42), rgba(4, 9, 18, 0.6)),
+    url("../assets/pngs/snow_2.png"),
+    url("../assets/pngs/snow.png"),
+    url("../assets/pngs/fog.png"),
+    url("../assets/pngs/1_foreground_mts.png"),
+    url("../assets/pngs/2_foreground_mts.png"),
+    url("../assets/pngs/3_ice_castle.png"),
+    url("../assets/pngs/4_BG_mts.png"),
+    url("../assets/pngs/sky.png"),
+    linear-gradient(160deg, #081018 0%, #0a1522 45%, #050912 100%);
+  background-position:
+    center,
+    center,
+    center,
+    center bottom,
+    center bottom,
+    center bottom,
+    center bottom,
+    center bottom,
+    center top,
+    center;
+  background-repeat:
+    no-repeat,
+    no-repeat,
+    no-repeat,
+    no-repeat,
+    no-repeat,
+    no-repeat,
+    no-repeat,
+    no-repeat,
+    no-repeat,
+    no-repeat;
+  background-size:
+    auto,
+    cover,
+    cover,
+    cover,
+    cover,
+    cover,
+    cover,
+    cover,
+    cover,
+    cover;
 }
 
 .home-utility-button {
@@ -28,6 +67,8 @@
     border-color 150ms,
     filter 150ms,
     box-shadow 150ms;
+}
+
 .home-utility-button:hover {
   transform: translateY(-1px);
   border-color: #b9ebff;
@@ -47,5 +88,4 @@
 .home-utility-button:focus-visible {
   outline: 3px solid #d8f3ff;
   outline-offset: 3px;
-}
 }
