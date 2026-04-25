@@ -1,36 +1,20 @@
 import { useEffect, useState } from "react";
 import { Heart, Shield, Sparkles, Sword } from "lucide-react";
 
+import monstersSheet from "../assets/32rogues/monsters.png";
 import type { Route } from "./+types/map";
 import { MenuPanel } from "../components/menu-panel";
+import { apiUrl } from "../lib/config";
 import { enableAmbientAudio, playHoverSound } from "../lib/audio";
 import "./home.css";
 import "./map.css";
 
 type StatKey = "health" | "attack" | "defense" | "magic";
-
-const enemies = [
-  {
-    name: "Witch",
-    imageSrc: "/monsters/witch.png",
-  },
-  {
-    name: "Giant Spider",
-    imageSrc: "/monsters/giant-spider.png",
-  },
-  {
-    name: "Dragon",
-    imageSrc: "/monsters/dragon.png",
-  },
-  {
-    name: "Goblin Warrior",
-    imageSrc: "/monsters/goblin-warrior.png",
-  },
-  {
-    name: "Goblin Mage",
-    imageSrc: "/monsters/goblin-mage.png",
-  },
-] as const;
+type PlayerStats = Record<StatKey, number> & { xp: number };
+type Enemy = {
+  name: string;
+  index: string;
+};
 
 const abilitySlots = [
   "Ability Slot 1",
@@ -50,6 +34,24 @@ const statCards: {
   { key: "magic", label: "Magic", Icon: Sparkles },
 ];
 
+const SPRITE_SIZE = 32;
+const SPRITE_SCALE = 3;
+const SHEET_WIDTH = 384;
+const SHEET_HEIGHT = 416;
+
+function getEnemySpriteStyle(index: string) {
+  const [rowLabel, columnLabel] = index.split(".");
+  const row = Number(rowLabel) - 1;
+  const column = columnLabel.toLowerCase().charCodeAt(0) - 97;
+  const scaledSize = SPRITE_SIZE * SPRITE_SCALE;
+
+  return {
+    backgroundImage: `url(${monstersSheet})`,
+    backgroundPosition: `-${column * scaledSize}px -${row * scaledSize}px`,
+    backgroundSize: `${SHEET_WIDTH * SPRITE_SCALE}px ${SHEET_HEIGHT * SPRITE_SCALE}px`,
+  };
+}
+
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "RPG Gauntlet Map" },
@@ -61,17 +63,65 @@ export default function Map() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [xp, setXp] = useState(8);
-  const [stats, setStats] = useState({
-    health: 12,
-    attack: 5,
-    defense: 4,
-    magic: 3,
-  });
+  const [enemies, setEnemies] = useState<Enemy[]>([]);
+  const [enemiesLoading, setEnemiesLoading] = useState(true);
+  const [enemiesError, setEnemiesError] = useState<string | null>(null);
+  const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsSaving, setStatsSaving] = useState(false);
+  const [statsError, setStatsError] = useState<string | null>(null);
 
   useEffect(() => {
     enableAmbientAudio();
+    void loadEnemies();
+    void loadPlayerStats();
   }, []);
+
+  const loadEnemies = async () => {
+    setEnemiesLoading(true);
+    setEnemiesError(null);
+
+    try {
+      const response = await fetch(apiUrl("/getenemies"));
+      const data = (await response.json()) as
+        | { enemies: Enemy[] }
+        | { error: string };
+
+      if (!response.ok || "error" in data) {
+        throw new Error("error" in data ? data.error : "Couldn't load enemies.");
+      }
+
+      setEnemies(data.enemies);
+    } catch (error) {
+      setEnemiesError(
+        error instanceof Error ? error.message : "Couldn't load enemies.",
+      );
+    } finally {
+      setEnemiesLoading(false);
+    }
+  };
+
+  const loadPlayerStats = async () => {
+    setStatsLoading(true);
+    setStatsError(null);
+
+    try {
+      const response = await fetch(apiUrl("/playerstats"));
+      const data = (await response.json()) as PlayerStats | { error: string };
+
+      if (!response.ok || "error" in data) {
+        throw new Error("error" in data ? data.error : "Couldn't load player stats.");
+      }
+
+      setPlayerStats(data);
+    } catch (error) {
+      setStatsError(
+        error instanceof Error ? error.message : "Couldn't load player stats.",
+      );
+    } finally {
+      setStatsLoading(false);
+    }
+  };
 
   const handleExitGame = () => {
     if (typeof window !== "undefined") {
@@ -81,16 +131,44 @@ export default function Map() {
     setMessage("Your browser blocked automatic closing. Close this tab to exit.");
   };
 
-  const handleSpendXp = (stat: StatKey) => {
-    if (xp <= 0) {
+  const handleSpendXp = async (stat: StatKey) => {
+    if (!playerStats || playerStats.xp <= 0 || statsSaving) {
       return;
     }
 
-    setXp((currentXp) => currentXp - 1);
-    setStats((currentStats) => ({
-      ...currentStats,
-      [stat]: currentStats[stat] + 1,
-    }));
+    const nextStats = {
+      health: playerStats.health,
+      attack: playerStats.attack,
+      defense: playerStats.defense,
+      magic: playerStats.magic,
+      [stat]: playerStats[stat] + 1,
+    };
+
+    setStatsSaving(true);
+    setStatsError(null);
+
+    try {
+      const response = await fetch(apiUrl("/playerstats"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(nextStats),
+      });
+      const data = (await response.json()) as PlayerStats | { error: string };
+
+      if (!response.ok || "error" in data) {
+        throw new Error("error" in data ? data.error : "Couldn't update player stats.");
+      }
+
+      setPlayerStats(data);
+    } catch (error) {
+      setStatsError(
+        error instanceof Error ? error.message : "Couldn't update player stats.",
+      );
+    } finally {
+      setStatsSaving(false);
+    }
   };
 
   return (
@@ -106,7 +184,7 @@ export default function Map() {
           onFocus={playHoverSound}
           onMouseEnter={playHoverSound}
         >
-          Stats
+          Abilities
         </button>
         <button
           className="map-toolbar-button"
@@ -131,27 +209,49 @@ export default function Map() {
           </p>
         </div>
 
-        <div className="map-grid">
-          {enemies.map((enemy, index) => (
+        {enemiesLoading ? (
+          <p className="map-message" role="status">
+            Loading enemies...
+          </p>
+        ) : enemiesError ? (
+          <div className="map-message-wrap">
+            <p className="map-message" role="status">
+              {enemiesError}
+            </p>
             <button
-              key={enemy.name}
-              className="map-node"
+              className="map-toolbar-button"
               type="button"
+              onClick={() => void loadEnemies()}
               onFocus={playHoverSound}
               onMouseEnter={playHoverSound}
             >
-              <div className="map-node-image">
-                <img
-                  className="map-node-sprite"
-                  src={enemy.imageSrc}
-                  alt={enemy.name}
-                />
-              </div>
-              <p className="map-node-label">Level {index + 1}</p>
-              <p className="map-node-copy">{enemy.name}</p>
+              Retry
             </button>
-          ))}
-        </div>
+          </div>
+        ) : (
+          <div className="map-grid">
+            {enemies.map((enemy, index) => (
+              <button
+                key={`${enemy.index}-${enemy.name}`}
+                className="map-node"
+                type="button"
+                onFocus={playHoverSound}
+                onMouseEnter={playHoverSound}
+              >
+                <div className="map-node-image">
+                  <div
+                    aria-label={enemy.name}
+                    className="map-node-sprite"
+                    role="img"
+                    style={getEnemySpriteStyle(enemy.index)}
+                  />
+                </div>
+                <p className="map-node-label">Level {index + 1}</p>
+                <p className="map-node-copy">{enemy.name}</p>
+              </button>
+            ))}
+          </div>
+        )}
       </section>
 
       {menuOpen ? (
@@ -187,29 +287,57 @@ export default function Map() {
               </button>
             </div>
 
-            <p className="stats-xp">XP Available: {xp}</p>
+            <p className="stats-xp">
+              XP Available: {playerStats ? playerStats.xp : "--"}
+            </p>
 
-            <div className="stats-grid">
-              {statCards.map(({ key, label, Icon }) => (
-                <div key={key} className="stats-card">
-                  <div className="stats-icon-wrap">
-                    <Icon aria-hidden="true" className="stats-icon" strokeWidth={2.2} />
+            {statsError ? (
+              <p className="stats-message" role="status">
+                {statsError}
+              </p>
+            ) : null}
+
+            {statsLoading ? (
+              <p className="stats-message" role="status">
+                Loading player stats...
+              </p>
+            ) : playerStats ? (
+              <div className="stats-grid">
+                {statCards.map(({ key, label, Icon }) => (
+                  <div key={key} className="stats-card">
+                    <div className="stats-icon-wrap">
+                      <Icon
+                        aria-hidden="true"
+                        className="stats-icon"
+                        strokeWidth={2.2}
+                      />
+                    </div>
+                    <p className="stats-label">{label}</p>
+                    <p className="stats-value">{playerStats[key]}</p>
+                    <button
+                      className="stats-buy"
+                      type="button"
+                      onClick={() => void handleSpendXp(key)}
+                      onFocus={playHoverSound}
+                      onMouseEnter={playHoverSound}
+                      disabled={playerStats.xp <= 0 || statsSaving}
+                    >
+                      {statsSaving ? "..." : "+1"}
+                    </button>
                   </div>
-                  <p className="stats-label">{label}</p>
-                  <p className="stats-value">{stats[key]}</p>
-                  <button
-                    className="stats-buy"
-                    type="button"
-                    onClick={() => handleSpendXp(key)}
-                    onFocus={playHoverSound}
-                    onMouseEnter={playHoverSound}
-                    disabled={xp <= 0}
-                  >
-                    +1
-                  </button>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <button
+                className="stats-close"
+                type="button"
+                onClick={() => void loadPlayerStats()}
+                onFocus={playHoverSound}
+                onMouseEnter={playHoverSound}
+              >
+                Retry
+              </button>
+            )}
 
             <div className="abilities-section">
               <p className="abilities-title">Abilities</p>

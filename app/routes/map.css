@@ -75,6 +75,20 @@
   line-height: 1.2;
 }
 
+.map-message-wrap {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+}
+
+.map-message {
+  margin: 0;
+  color: #b8d8f4;
+  font-size: 1.2rem;
+  line-height: 1.2;
+  text-align: center;
+}
+
 .map-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -113,6 +127,7 @@
 .map-node-sprite {
   width: 96px;
   height: 96px;
+  background-repeat: no-repeat;
   image-rendering: pixelated;
 }
 
@@ -202,6 +217,13 @@
   margin: 1.25rem 0 0;
   color: #93ddff;
   font-size: 1.25rem;
+}
+
+.stats-message {
+  margin: 0.9rem 0 0;
+  color: #b8d8f4;
+  font-size: 1.1rem;
+  line-height: 1.2;
 }
 
 .stats-grid {
