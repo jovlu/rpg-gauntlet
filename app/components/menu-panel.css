@@ -1,0 +1,77 @@
+.menu-panel {
+  box-shadow:
+    0 0 0 4px #202845,
+    0 0 0 8px #0d1326,
+    16px 16px 0 rgba(4, 8, 18, 0.7),
+    inset 0 0 0 4px rgba(168, 214, 255, 0.06);
+}
+
+.menu-panel::before {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  border: 2px solid rgba(166, 203, 255, 0.18);
+  pointer-events: none;
+}
+
+.menu-action-button {
+  position: relative;
+  cursor: pointer;
+  border: 3px solid #8ec7ff;
+  padding: 1rem;
+  color: #f4fbff;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: linear-gradient(to bottom, #3f7cae, #28547c);
+  box-shadow:
+    inset 0 -4px 0 rgba(12, 27, 47, 0.45),
+    0 6px 0 #14253d;
+  transition:
+    transform 150ms,
+    border-color 150ms,
+    filter 150ms,
+    box-shadow 150ms;
+}
+
+.menu-action-button-secondary {
+  border-color: #89a5d6;
+  background: linear-gradient(to bottom, #4d5b90, #334165);
+}
+
+.menu-action-button:hover {
+  transform: translateY(-1px);
+  border-color: #b9ebff;
+  filter: brightness(1.05);
+  box-shadow:
+    inset 0 -4px 0 rgba(12, 27, 47, 0.45),
+    0 8px 0 #14253d;
+}
+
+.menu-action-button:active {
+  transform: translateY(3px);
+  box-shadow:
+    inset 0 -2px 0 rgba(12, 27, 47, 0.45),
+    0 3px 0 #14253d;
+}
+
+.menu-action-button:focus-visible {
+  outline: 3px solid #d8f3ff;
+  outline-offset: 3px;
+}
+
+.menu-status {
+  margin-top: 1.25rem;
+  color: #93ddff;
+  font-size: 1.2rem;
+  line-height: 1.1;
+}
+
+@media (min-width: 640px) {
+  .menu-action-button {
+    font-size: 1rem;
+  }
+}
