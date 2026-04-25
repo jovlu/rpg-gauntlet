@@ -17,6 +17,8 @@ body {
   font-family: var(--font-sans);
   font-size: 24px;
   letter-spacing: 0.04em;
+  -webkit-user-select: none;
+  user-select: none;
   background:
     radial-gradient(circle at 18% 20%, rgba(101, 123, 181, 0.16), transparent 0 1.6%),
     radial-gradient(circle at 75% 16%, rgba(92, 108, 160, 0.18), transparent 0 1.8%),
