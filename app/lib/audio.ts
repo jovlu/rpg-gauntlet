@@ -81,20 +81,10 @@ function getAmbienceSound() {
   }
 
   ambienceSound = new Howl({
-    src: [
-      createToneUrl(6, (time) => {
-        const swell = 0.55 + 0.45 * Math.sin(2 * Math.PI * time / 6);
-        return (
-          Math.sin(2 * Math.PI * 130.81 * time) * 0.05 * swell +
-          Math.sin(2 * Math.PI * 174.61 * time) * 0.04 * swell +
-          Math.sin(2 * Math.PI * 261.63 * time) * 0.03 * swell +
-          Math.sin(2 * Math.PI * 0.4 * time) * 0.01
-        );
-      }),
-    ],
+    src: ["/sounds/peergynt/peergynt.m4a"],
     autoplay: false,
-    format: ["wav"],
-    html5: false,
+    format: ["m4a"],
+    html5: true,
     loop: true,
     volume: 0.28,
   });
