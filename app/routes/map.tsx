@@ -11,6 +11,14 @@ import "./map.css";
 
 type StatKey = "health" | "attack" | "defense" | "magic";
 type PlayerStats = Record<StatKey, number> & { xp: number };
+type PlayerResponse = {
+  player: {
+    name: string;
+    index: string;
+    moves: string[];
+    stats: PlayerStats;
+  };
+};
 type Enemy = {
   name: string;
   index: string;
@@ -106,14 +114,16 @@ export default function Map() {
     setStatsError(null);
 
     try {
-      const response = await fetch(apiUrl("/playerstats"));
-      const data = (await response.json()) as PlayerStats | { error: string };
+      const response = await fetch(apiUrl("/player"));
+      const data = (await response.json()) as
+        | PlayerResponse
+        | { error: string };
 
       if (!response.ok || "error" in data) {
         throw new Error("error" in data ? data.error : "Couldn't load player stats.");
       }
 
-      setPlayerStats(data);
+      setPlayerStats(data.player.stats);
     } catch (error) {
       setStatsError(
         error instanceof Error ? error.message : "Couldn't load player stats.",
@@ -148,20 +158,22 @@ export default function Map() {
     setStatsError(null);
 
     try {
-      const response = await fetch(apiUrl("/playerstats"), {
-        method: "POST",
+      const response = await fetch(apiUrl("/player/stats"), {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(nextStats),
       });
-      const data = (await response.json()) as PlayerStats | { error: string };
+      const data = (await response.json()) as
+        | { stats: PlayerStats }
+        | { error: string };
 
       if (!response.ok || "error" in data) {
         throw new Error("error" in data ? data.error : "Couldn't update player stats.");
       }
 
-      setPlayerStats(data);
+      setPlayerStats(data.stats);
     } catch (error) {
       setStatsError(
         error instanceof Error ? error.message : "Couldn't update player stats.",
