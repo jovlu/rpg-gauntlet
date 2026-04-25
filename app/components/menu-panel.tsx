@@ -1,3 +1,4 @@
+import { playHoverSound } from "../lib/audio";
 import "./menu-panel.css";
 
 type MenuPanelProps = {
@@ -13,6 +14,11 @@ export function MenuPanel({
   onExit,
   message = null,
 }: MenuPanelProps) {
+  const hoverProps = {
+    onFocus: playHoverSound,
+    onMouseEnter: playHoverSound,
+  };
+
   return (
     <section
       className="menu-panel relative w-full max-w-[560px] border-4 border-[#7089bb] bg-linear-to-b from-[rgba(33,37,69,0.98)] to-[rgba(22,26,48,0.98)] px-[18px] py-[30px] text-center sm:px-7 sm:py-[36px]"
@@ -29,13 +35,19 @@ export function MenuPanel({
       </p>
 
       <div className="mt-7 grid gap-3">
-        <button className="menu-action-button" type="button" onClick={onPrimary}>
+        <button
+          className="menu-action-button"
+          type="button"
+          onClick={onPrimary}
+          {...hoverProps}
+        >
           {primaryLabel}
         </button>
         <button
           className="menu-action-button menu-action-button-secondary"
           type="button"
           onClick={onExit}
+          {...hoverProps}
         >
           Exit the game
         </button>

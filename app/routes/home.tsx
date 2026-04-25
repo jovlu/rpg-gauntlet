@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Maximize2 } from "lucide-react";
 import { useNavigate } from "react-router";
 
 import type { Route } from "./+types/home";
 import { MenuPanel } from "../components/menu-panel";
+import { enableAmbientAudio, playHoverSound } from "../lib/audio";
 import "./home.css";
 
 export function meta({}: Route.MetaArgs) {
@@ -16,6 +17,10 @@ export function meta({}: Route.MetaArgs) {
 export default function Home() {
   const [message, setMessage] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    enableAmbientAudio();
+  }, []);
 
   const handleStartRun = () => {
     navigate("/map");
@@ -55,6 +60,8 @@ export default function Home() {
         onClick={handleFullscreen}
         aria-label="Toggle fullscreen"
         title="Toggle fullscreen"
+        onFocus={playHoverSound}
+        onMouseEnter={playHoverSound}
       >
         <Maximize2 aria-hidden="true" className="h-5 w-5" strokeWidth={2.4} />
       </button>

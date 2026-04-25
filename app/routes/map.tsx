@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { Maximize2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import type { Route } from "./+types/map";
 import { MenuPanel } from "../components/menu-panel";
+import { enableAmbientAudio, playHoverSound } from "../lib/audio";
 import "./home.css";
 import "./map.css";
 
@@ -19,6 +19,10 @@ export default function Map() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    enableAmbientAudio();
+  }, []);
+
   const handleExitGame = () => {
     if (typeof window !== "undefined") {
       window.close();
@@ -34,6 +38,8 @@ export default function Map() {
           className="map-toolbar-button"
           type="button"
           onClick={() => setMenuOpen(menuOpen ? false : true)}
+          onFocus={playHoverSound}
+          onMouseEnter={playHoverSound}
         >
           Menu
         </button>
@@ -50,7 +56,13 @@ export default function Map() {
 
         <div className="map-grid">
           {levels.map((level) => (
-            <button key={level} className="map-node" type="button">
+            <button
+              key={level}
+              className="map-node"
+              type="button"
+              onFocus={playHoverSound}
+              onMouseEnter={playHoverSound}
+            >
               <div className="map-node-image">?</div>
               <p className="map-node-label">Level {level}</p>
               <p className="map-node-copy">Monster placeholder</p>
