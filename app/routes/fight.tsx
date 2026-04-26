@@ -114,17 +114,13 @@ export default function Fight({ params }: Route.ComponentProps) {
 
     const xpReward = enemy.level * (Math.floor(Math.random() * 3) + 1);
     const rewardRequests: Promise<Response>[] = [
-      fetch(apiUrl("/player/stats"), {
+      fetch(apiUrl("/player/givexp"), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          health: player.stats.health,
-          attack: player.stats.attack,
-          defense: player.stats.defense,
-          magic: player.stats.magic,
-          xp: player.stats.xp + xpReward,
+          amount: xpReward,
         }),
       }),
     ];
