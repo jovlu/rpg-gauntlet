@@ -22,17 +22,10 @@ function getEnemySpriteStyle(index: string) {
 
 type EnemyGridProps = {
   enemies: Enemy[];
-  enemiesLoading: boolean;
-  enemiesError: string | null;
-  onRetry: () => void;
+  playerLevel: number;
 };
 
-export function EnemyGrid({
-  enemies,
-  enemiesLoading,
-  enemiesError,
-  onRetry,
-}: EnemyGridProps) {
+export function EnemyGrid({ enemies, playerLevel }: EnemyGridProps) {
   return (
     <section className="map-screen w-full max-w-[1100px]">
       <div className="map-header">
@@ -41,32 +34,17 @@ export function EnemyGrid({
         <p className="map-copy">Five enemies stand between you and the castle.</p>
       </div>
 
-      {enemiesLoading ? (
-        <p className="map-message" role="status">
-          Loading enemies...
-        </p>
-      ) : enemiesError ? (
-        <div className="map-message-wrap">
-          <p className="map-message" role="status">
-            {enemiesError}
-          </p>
-          <button
-            className="map-toolbar-button"
-            type="button"
-            onClick={onRetry}
-            onFocus={playHoverSound}
-            onMouseEnter={playHoverSound}
-          >
-            Retry
-          </button>
-        </div>
-      ) : (
-        <div className="map-grid">
-          {enemies.map((enemy, index) => (
+      <div className="map-grid">
+        {enemies.map((enemy, index) => {
+          const level = index + 1;
+          const locked = level > playerLevel;
+
+          return (
             <button
               key={`${enemy.index}-${enemy.name}`}
-              className="map-node"
+              className={`map-node${locked ? " map-node-locked" : ""}`}
               type="button"
+              disabled={locked}
               onFocus={playHoverSound}
               onMouseEnter={playHoverSound}
             >
@@ -78,12 +56,12 @@ export function EnemyGrid({
                   style={getEnemySpriteStyle(enemy.index)}
                 />
               </div>
-              <p className="map-node-label">Level {index + 1}</p>
+              <p className="map-node-label">Level {level}</p>
               <p className="map-node-copy">{enemy.name}</p>
             </button>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
     </section>
   );
 }

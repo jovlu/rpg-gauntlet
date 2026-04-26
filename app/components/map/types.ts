@@ -5,6 +5,7 @@ export type PlayerStats = Record<StatKey, number> & { xp: number };
 export type Player = {
   name: string;
   index: string;
+  level: number;
   moves: string[];
   stats: PlayerStats;
 };

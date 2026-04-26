@@ -15,9 +15,15 @@ import type {
 import type { Route } from "./+types/map";
 import { MenuPanel } from "../components/menu-panel";
 import { apiUrl } from "../lib/config";
-import { enableAmbientAudio, playHoverSound } from "../lib/audio";
+import { enableAmbientAudio } from "../lib/audio";
 import "./home.css";
 import "./map.css";
+
+type OverlayState =
+  | { type: "none" }
+  | { type: "menu" }
+  | { type: "character" }
+  | { type: "swap"; move: Move };
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -27,107 +33,40 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Map() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [statsOpen, setStatsOpen] = useState(false);
+  const [overlay, setOverlay] = useState<OverlayState>({ type: "none" });
   const [message, setMessage] = useState<string | null>(null);
   const [enemies, setEnemies] = useState<Enemy[]>([]);
-  const [enemiesLoading, setEnemiesLoading] = useState(true);
-  const [enemiesError, setEnemiesError] = useState<string | null>(null);
+  const [playerLevel, setPlayerLevel] = useState(1);
   const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null);
-  const [statsLoading, setStatsLoading] = useState(true);
-  const [statsSaving, setStatsSaving] = useState(false);
-  const [statsError, setStatsError] = useState<string | null>(null);
   const [playerMoves, setPlayerMoves] = useState<Move[]>([]);
-  const [abilitiesLoading, setAbilitiesLoading] = useState(true);
-  const [abilitiesError, setAbilitiesError] = useState<string | null>(null);
-  const [selectedMove, setSelectedMove] = useState<Move | null>(null);
 
   useEffect(() => {
     enableAmbientAudio();
     void loadEnemies();
-    void loadPlayerStats();
+    void loadPlayerData();
   }, []);
 
   const loadEnemies = async () => {
-    setEnemiesLoading(true);
-    setEnemiesError(null);
-
-    try {
-      const response = await fetch(apiUrl("/enemies"));
-      const data = (await response.json()) as
-        | { enemies: Enemy[] }
-        | { error: string };
-
-      if (!response.ok || "error" in data) {
-        throw new Error("error" in data ? data.error : "Couldn't load enemies.");
-      }
-
-      setEnemies(data.enemies);
-    } catch (error) {
-      setEnemiesError(
-        error instanceof Error ? error.message : "Couldn't load enemies.",
-      );
-    } finally {
-      setEnemiesLoading(false);
-    }
+    const response = await fetch(apiUrl("/enemies"));
+    const data = (await response.json()) as { enemies: Enemy[] };
+    setEnemies(data.enemies);
   };
 
-  const loadPlayerStats = async () => {
-    setStatsLoading(true);
-    setStatsError(null);
+  const loadPlayerData = async () => {
+    const playerResponse = await fetch(apiUrl("/player"));
+    const playerData = (await playerResponse.json()) as PlayerResponse;
+    const movesResponse = await fetch(apiUrl("/moves"));
+    const movesData = (await movesResponse.json()) as MovesResponse;
+    const moveLookup = new globalThis.Map(
+      movesData.moves.map((move) => [move.id, move]),
+    );
+    const nextMoves = playerData.player.moves
+      .map((moveId) => moveLookup.get(moveId))
+      .filter((move): move is Move => Boolean(move));
 
-    try {
-      const response = await fetch(apiUrl("/player"));
-      const data = (await response.json()) as
-        | PlayerResponse
-        | { error: string };
-
-      if (!response.ok || "error" in data) {
-        throw new Error("error" in data ? data.error : "Couldn't load player stats.");
-      }
-
-      setPlayerStats(data.player.stats);
-      void loadPlayerMoves(data.player.moves);
-    } catch (error) {
-      setStatsError(
-        error instanceof Error ? error.message : "Couldn't load player stats.",
-      );
-      setPlayerMoves([]);
-      setAbilitiesError("Couldn't load abilities.");
-      setAbilitiesLoading(false);
-    } finally {
-      setStatsLoading(false);
-    }
-  };
-
-  const loadPlayerMoves = async (moveIds: string[]) => {
-    setAbilitiesLoading(true);
-    setAbilitiesError(null);
-
-    try {
-      const response = await fetch(apiUrl("/moves"));
-      const data = (await response.json()) as MovesResponse | { error: string };
-
-      if (!response.ok || "error" in data) {
-        throw new Error("error" in data ? data.error : "Couldn't load abilities.");
-      }
-
-      const moveLookup = new globalThis.Map(
-        data.moves.map((move) => [move.id, move]),
-      );
-      const nextMoves = moveIds
-        .map((moveId) => moveLookup.get(moveId))
-        .filter((move): move is Move => Boolean(move));
-
-      setPlayerMoves(nextMoves);
-    } catch (error) {
-      setPlayerMoves([]);
-      setAbilitiesError(
-        error instanceof Error ? error.message : "Couldn't load abilities.",
-      );
-    } finally {
-      setAbilitiesLoading(false);
-    }
+    setPlayerLevel(playerData.player.level);
+    setPlayerStats(playerData.player.stats);
+    setPlayerMoves(nextMoves);
   };
 
   const handleExitGame = () => {
@@ -139,7 +78,7 @@ export default function Map() {
   };
 
   const handleSpendXp = async (stat: StatKey) => {
-    if (!playerStats || playerStats.xp <= 0 || statsSaving) {
+    if (!playerStats || playerStats.xp <= 0) {
       return;
     }
 
@@ -151,62 +90,41 @@ export default function Map() {
       [stat]: playerStats[stat] + 1,
     };
 
-    setStatsSaving(true);
-    setStatsError(null);
+    const response = await fetch(apiUrl("/player/stats"), {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(nextStats),
+    });
+    const data = (await response.json()) as { stats: PlayerStats };
 
-    try {
-      const response = await fetch(apiUrl("/player/stats"), {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(nextStats),
-      });
-      const data = (await response.json()) as
-        | { stats: PlayerStats }
-        | { error: string };
-
-      if (!response.ok || "error" in data) {
-        throw new Error("error" in data ? data.error : "Couldn't update player stats.");
-      }
-
-      setPlayerStats(data.stats);
-    } catch (error) {
-      setStatsError(
-        error instanceof Error ? error.message : "Couldn't update player stats.",
-      );
-    } finally {
-      setStatsSaving(false);
-    }
+    setPlayerStats(data.stats);
   };
 
   return (
     <main className="home-screen map-layout px-5 py-6">
       <MapToolbar
         onToggleAbilities={() => {
-          setSelectedMove(null);
-          setStatsOpen((open) => !open);
-          setMenuOpen(false);
+          setOverlay((current) =>
+            current.type === "character" ? { type: "none" } : { type: "character" },
+          );
         }}
         onToggleMenu={() => {
-          setMenuOpen((open) => !open);
-          setStatsOpen(false);
+          setOverlay((current) =>
+            current.type === "menu" ? { type: "none" } : { type: "menu" },
+          );
         }}
       />
 
-      <EnemyGrid
-        enemies={enemies}
-        enemiesLoading={enemiesLoading}
-        enemiesError={enemiesError}
-        onRetry={() => void loadEnemies()}
-      />
+      <EnemyGrid enemies={enemies} playerLevel={playerLevel} />
 
-      {menuOpen ? (
+      {overlay.type === "menu" ? (
         <div className="map-overlay">
           <MenuPanel
             primaryLabel="Resume"
             onPrimary={() => {
-              setMenuOpen(false);
+              setOverlay({ type: "none" });
               setMessage(null);
             }}
             onExit={handleExitGame}
@@ -215,26 +133,20 @@ export default function Map() {
         </div>
       ) : null}
 
-      {statsOpen ? (
+      {overlay.type === "character" || overlay.type === "swap" ? (
         <div className="map-overlay">
-          {selectedMove ? (
-            <SwapPanel move={selectedMove} onBack={() => setSelectedMove(null)} />
+          {overlay.type === "swap" ? (
+            <SwapPanel
+              move={overlay.move}
+              onBack={() => setOverlay({ type: "character" })}
+            />
           ) : (
             <CharacterPanel
               playerStats={playerStats}
-              statsLoading={statsLoading}
-              statsSaving={statsSaving}
-              statsError={statsError}
               playerMoves={playerMoves}
-              abilitiesLoading={abilitiesLoading}
-              abilitiesError={abilitiesError}
-              onClose={() => {
-                setSelectedMove(null);
-                setStatsOpen(false);
-              }}
-              onRetry={() => void loadPlayerStats()}
+              onClose={() => setOverlay({ type: "none" })}
               onSpendXp={(stat) => void handleSpendXp(stat)}
-              onSwapMove={setSelectedMove}
+              onSwapMove={(move) => setOverlay({ type: "swap", move })}
             />
           )}
         </div>

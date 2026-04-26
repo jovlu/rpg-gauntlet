@@ -18,14 +18,8 @@ const statCards: {
 
 type CharacterPanelProps = {
   playerStats: PlayerStats | null;
-  statsLoading: boolean;
-  statsSaving: boolean;
-  statsError: string | null;
   playerMoves: Move[];
-  abilitiesLoading: boolean;
-  abilitiesError: string | null;
   onClose: () => void;
-  onRetry: () => void;
   onSpendXp: (stat: StatKey) => void;
   onSwapMove: (move: Move) => void;
 };
@@ -37,14 +31,12 @@ type StatCardProps = {
     Icon: LucideIcon;
   };
   playerStats: PlayerStats;
-  statsSaving: boolean;
   onSpendXp: (stat: StatKey) => void;
 };
 
 function StatCard({
   stat,
   playerStats,
-  statsSaving,
   onSpendXp,
 }: StatCardProps) {
   const { key, label, Icon } = stat;
@@ -62,9 +54,9 @@ function StatCard({
         onClick={() => onSpendXp(key)}
         onFocus={playHoverSound}
         onMouseEnter={playHoverSound}
-        disabled={playerStats.xp <= 0 || statsSaving}
+        disabled={playerStats.xp <= 0}
       >
-        {statsSaving ? "..." : "+1"}
+        +1
       </button>
     </div>
   );
@@ -95,14 +87,8 @@ function AbilityCard({ move, onSwapMove }: AbilityCardProps) {
 
 export function CharacterPanel({
   playerStats,
-  statsLoading,
-  statsSaving,
-  statsError,
   playerMoves,
-  abilitiesLoading,
-  abilitiesError,
   onClose,
-  onRetry,
   onSpendXp,
   onSwapMove,
 }: CharacterPanelProps) {
@@ -126,72 +112,28 @@ export function CharacterPanel({
 
       <p className="stats-xp">XP Available: {playerStats ? playerStats.xp : "--"}</p>
 
-      {statsError ? (
-        <p className="stats-message" role="status">
-          {statsError}
-        </p>
-      ) : null}
-
-      {statsLoading ? (
-        <p className="stats-message" role="status">
-          Loading player stats...
-        </p>
-      ) : playerStats ? (
+      {playerStats ? (
         <div className="stats-grid">
           {statCards.map((stat) => (
             <StatCard
               key={stat.key}
               stat={stat}
               playerStats={playerStats}
-              statsSaving={statsSaving}
               onSpendXp={onSpendXp}
             />
           ))}
         </div>
-      ) : (
-        <button
-          className="stats-close"
-          type="button"
-          onClick={onRetry}
-          onFocus={playHoverSound}
-          onMouseEnter={playHoverSound}
-        >
-          Retry
-        </button>
-      )}
+      ) : null}
 
       <div className="abilities-section">
         <p className="abilities-title">Abilities</p>
-        {abilitiesLoading ? (
-          <p className="stats-message" role="status">
-            Loading abilities...
-          </p>
-        ) : abilitiesError ? (
-          <div className="map-message-wrap">
-            <p className="stats-message" role="status">
-              {abilitiesError}
-            </p>
-            <button
-              className="stats-close"
-              type="button"
-              onClick={onRetry}
-              onFocus={playHoverSound}
-              onMouseEnter={playHoverSound}
-            >
-              Retry
-            </button>
-          </div>
-        ) : playerMoves.length > 0 ? (
+        {playerMoves.length > 0 ? (
           <div className="abilities-grid">
             {playerMoves.map((move) => (
               <AbilityCard key={move.id} move={move} onSwapMove={onSwapMove} />
             ))}
           </div>
-        ) : (
-          <p className="stats-message" role="status">
-            No abilities available.
-          </p>
-        )}
+        ) : null}
       </div>
     </section>
   );

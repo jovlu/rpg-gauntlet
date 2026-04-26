@@ -112,6 +112,20 @@
     filter 150ms;
 }
 
+.map-node:disabled {
+  cursor: default;
+}
+
+.map-node-locked {
+  border-color: #4a5678;
+  color: #93a0b9;
+  filter: grayscale(1) brightness(0.72);
+  box-shadow:
+    0 0 0 4px #1a2036,
+    0 0 0 8px #090d19,
+    10px 10px 0 rgba(4, 8, 18, 0.45);
+}
+
 .map-node-image {
   display: grid;
   place-items: center;
@@ -421,6 +435,13 @@
 .stats-buy:focus-visible {
   outline: 3px solid #d8f3ff;
   outline-offset: 3px;
+}
+
+.map-node-locked:hover,
+.map-node-locked:active {
+  transform: none;
+  border-color: #4a5678;
+  filter: grayscale(1) brightness(0.72);
 }
 
 @media (min-width: 640px) {
