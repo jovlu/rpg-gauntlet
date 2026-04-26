@@ -1,0 +1,68 @@
+.fight-stage {
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  padding: 2.5rem 2.5rem 1.5rem;
+  border-width: 0 0 4px;
+  background:
+    linear-gradient(rgba(4, 9, 18, 0.12), rgba(4, 9, 18, 0.22)),
+    url("../../assets/bg.png") center / cover no-repeat;
+}
+
+.fight-stage,
+.fight-command-panel {
+  border: 4px solid #7089bb;
+}
+
+.fight-stage-sky {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 74% 18%, rgba(168, 208, 255, 0.08), transparent 0 20%),
+    radial-gradient(circle at 22% 78%, rgba(132, 165, 255, 0.06), transparent 0 18%),
+    radial-gradient(circle at 50% 100%, rgba(129, 181, 255, 0.05), transparent 0 34%),
+    linear-gradient(180deg, rgba(10, 20, 42, 0.02), rgba(4, 8, 18, 0.34));
+}
+
+.fight-enemy-side,
+.fight-player-side {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+}
+
+.fight-enemy-side {
+  justify-items: end;
+  right: 330px;
+  top: 320px;
+}
+
+.fight-player-side {
+  justify-items: start;
+  left: 250px;
+  bottom: 130px;
+}
+
+.fight-platform {
+  display: grid;
+  place-items: center;
+  min-width: 260px;
+  min-height: 160px;
+}
+
+.fight-sprite {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 640px) {
+  .fight-stage {
+    padding: 1rem 1rem 0.5rem;
+  }
+
+  .fight-enemy-side,
+  .fight-player-side {
+    transform: scale(0.9);
+    transform-origin: center;
+  }
+}

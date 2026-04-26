@@ -33,3 +33,10 @@ export function getAbilityIconLabel(move: Move) {
 
   return move.name.charAt(0).toUpperCase();
 }
+
+export function getEnemyId(enemy: { name: string }) {
+  return enemy.name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}

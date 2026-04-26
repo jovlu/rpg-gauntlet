@@ -1,0 +1,81 @@
+.fight-move-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  border: 3px solid rgba(142, 199, 255, 0.24);
+  padding: 0.7rem;
+  min-height: 96px;
+  background: rgba(9, 16, 32, 0.45);
+  transition: transform 150ms, border-color 150ms, filter 150ms;
+}
+
+.fight-move-button:hover {
+  transform: translateY(-1px);
+  border-color: #b9ebff;
+  filter: brightness(1.05);
+}
+
+.fight-move-button:focus-visible {
+  outline: 3px solid #d8f3ff;
+  outline-offset: 3px;
+}
+
+.fight-move-icon {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 72px;
+  border: 3px dashed rgba(142, 199, 255, 0.55);
+  color: #93ddff;
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  background: rgba(9, 16, 32, 0.7);
+}
+
+.fight-move-tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.75rem);
+  z-index: 5;
+  width: min(260px, calc(100vw - 2rem));
+  padding: 0.8rem 0.9rem;
+  text-align: left;
+  border: 3px solid #89a5d6;
+  background: rgba(10, 18, 36, 0.98);
+  box-shadow:
+    0 0 0 3px #202845,
+    8px 8px 0 rgba(4, 8, 18, 0.55);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 8px);
+  transition: opacity 120ms, transform 120ms;
+}
+
+.fight-move-name {
+  margin: 0;
+  color: #eef7ff;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fight-move-description {
+  margin: 0.45rem 0 0;
+  color: #b8d8f4;
+  font-size: 0.95rem;
+  line-height: 1.15;
+}
+
+.fight-move-button:hover .fight-move-tooltip,
+.fight-move-button:focus-visible .fight-move-tooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@media (max-width: 640px) {
+  .fight-move-icon {
+    min-height: 60px;
+  }
+}

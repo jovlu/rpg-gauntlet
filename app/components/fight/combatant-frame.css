@@ -1,0 +1,60 @@
+.fight-frame {
+  width: min(100%, 340px);
+  border: 4px solid #9db7e4;
+  padding: 0.9rem 1rem;
+  background: rgba(8, 14, 28, 0.9);
+  box-shadow:
+    0 0 0 4px #1c2842,
+    8px 8px 0 rgba(5, 9, 18, 0.55);
+}
+
+.fight-frame-enemy {
+  margin-right: 1.5rem;
+}
+
+.fight-frame-player {
+  margin-top: 0.75rem;
+}
+
+.fight-frame-topline,
+.fight-frame-stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+
+.fight-frame-name,
+.fight-frame-level,
+.fight-frame-stats {
+  margin: 0;
+  color: #9ddfff;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fight-frame-name {
+  color: #eef7ff;
+}
+
+.fight-hp-track {
+  width: 100%;
+  height: 16px;
+  margin-top: 0.7rem;
+  border: 2px solid #3d4b6f;
+  background: rgba(17, 22, 38, 0.92);
+}
+
+.fight-hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #49ca82, #c8ff86);
+}
+
+@media (max-width: 640px) {
+  .fight-frame {
+    width: 100%;
+    padding: 0.8rem;
+  }
+}

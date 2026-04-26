@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 
 import { CharacterPanel } from "../components/map/character-panel";
 import { EnemyGrid } from "../components/map/enemy-grid";
@@ -12,6 +13,7 @@ import type {
   PlayerStats,
   StatKey,
 } from "../components/map/types";
+import { getEnemyId } from "../components/map/utils";
 import type { Route } from "./+types/map";
 import { MenuPanel } from "../components/menu-panel";
 import { apiUrl } from "../lib/config";
@@ -33,6 +35,7 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Map() {
+  const navigate = useNavigate();
   const [overlay, setOverlay] = useState<OverlayState>({ type: "none" });
   const [message, setMessage] = useState<string | null>(null);
   const [enemies, setEnemies] = useState<Enemy[]>([]);
@@ -117,7 +120,11 @@ export default function Map() {
         }}
       />
 
-      <EnemyGrid enemies={enemies} playerLevel={playerLevel} />
+      <EnemyGrid
+        enemies={enemies}
+        onSelectEnemy={(enemy) => navigate(`/fight/${getEnemyId(enemy)}`)}
+        playerLevel={playerLevel}
+      />
 
       {overlay.type === "menu" ? (
         <div className="map-overlay">

@@ -1,31 +1,19 @@
 import monstersSheet from "../../assets/32rogues/monsters.png";
 import { playHoverSound } from "../../lib/audio";
 import type { Enemy } from "./types";
-
-const SPRITE_SIZE = 32;
-const SPRITE_SCALE = 3;
-const SHEET_WIDTH = 384;
-const SHEET_HEIGHT = 416;
-
-function getEnemySpriteStyle(index: string) {
-  const [rowLabel, columnLabel] = index.split(".");
-  const row = Number(rowLabel) - 1;
-  const column = columnLabel.toLowerCase().charCodeAt(0) - 97;
-  const scaledSize = SPRITE_SIZE * SPRITE_SCALE;
-
-  return {
-    backgroundImage: `url(${monstersSheet})`,
-    backgroundPosition: `-${column * scaledSize}px -${row * scaledSize}px`,
-    backgroundSize: `${SHEET_WIDTH * SPRITE_SCALE}px ${SHEET_HEIGHT * SPRITE_SCALE}px`,
-  };
-}
+import { SheetSprite } from "../sprites/sheet-sprite";
 
 type EnemyGridProps = {
   enemies: Enemy[];
+  onSelectEnemy: (enemy: Enemy) => void;
   playerLevel: number;
 };
 
-export function EnemyGrid({ enemies, playerLevel }: EnemyGridProps) {
+export function EnemyGrid({
+  enemies,
+  onSelectEnemy,
+  playerLevel,
+}: EnemyGridProps) {
   return (
     <section className="map-screen w-full max-w-[1100px]">
       <div className="map-header">
@@ -45,15 +33,19 @@ export function EnemyGrid({ enemies, playerLevel }: EnemyGridProps) {
               className={`map-node${locked ? " map-node-locked" : ""}`}
               type="button"
               disabled={locked}
+              onClick={() => onSelectEnemy(enemy)}
               onFocus={playHoverSound}
               onMouseEnter={playHoverSound}
             >
               <div className="map-node-image">
-                <div
-                  aria-label={enemy.name}
+                <SheetSprite
                   className="map-node-sprite"
-                  role="img"
-                  style={getEnemySpriteStyle(enemy.index)}
+                  image={monstersSheet}
+                  index={enemy.index}
+                  label={enemy.name}
+                  scale={3}
+                  sheetHeight={416}
+                  sheetWidth={384}
                 />
               </div>
               <p className="map-node-label">Level {level}</p>

@@ -1,0 +1,38 @@
+.fight-state-panel {
+  width: min(100%, 560px);
+  display: grid;
+  gap: 1rem;
+  justify-items: start;
+  border: 4px solid #7089bb;
+  padding: 1rem 1.1rem 1.1rem;
+  background: linear-gradient(to bottom, rgba(33, 37, 69, 0.9), rgba(18, 22, 40, 0.88));
+  box-shadow:
+    0 0 0 4px #202845,
+    0 0 0 8px #0d1326,
+    16px 16px 0 rgba(4, 8, 18, 0.62);
+}
+
+.fight-panel-kicker {
+  margin: 0;
+  color: #7ad6ff;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.fight-panel-title {
+  margin: 0;
+  color: #eef7ff;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.fight-panel-copy {
+  margin: 0;
+  color: #b8d8f4;
+  font-size: 1.08rem;
+  line-height: 1.2;
+}

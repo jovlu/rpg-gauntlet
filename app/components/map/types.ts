@@ -1,6 +1,8 @@
 export type StatKey = "health" | "attack" | "defense" | "magic";
 
-export type PlayerStats = Record<StatKey, number> & { xp: number };
+export type CombatStats = Record<StatKey, number>;
+
+export type PlayerStats = CombatStats & { xp: number };
 
 export type Player = {
   name: string;
@@ -20,6 +22,8 @@ export type Move = {
   icon: string;
   iconName: string;
   iconIndex: string;
+  qte?: string;
+  qteValue?: number | string | null;
   description: string;
 };
 
@@ -30,4 +34,6 @@ export type MovesResponse = {
 export type Enemy = {
   name: string;
   index: string;
+  moves: string[];
+  stats: CombatStats;
 };
