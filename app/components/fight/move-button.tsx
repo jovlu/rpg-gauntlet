@@ -4,21 +4,27 @@ import { getAbilityIconLabel, getAbilityIconSrc } from "../map/utils";
 import "./move-button.css";
 
 type MoveButtonProps = {
+  cooldown: number;
+  disabled: boolean;
   move: Move;
+  onSelect: (moveId: string) => void;
 };
 
-export function MoveButton({ move }: MoveButtonProps) {
+export function MoveButton({ cooldown, disabled, move, onSelect }: MoveButtonProps) {
   const iconSrc = getAbilityIconSrc(move);
 
   return (
     <button
       aria-label={`${move.name}: ${move.description}`}
-      className="fight-move-button"
+      className={`fight-move-button ${disabled ? "fight-move-button-disabled" : ""}`}
+      disabled={disabled}
       type="button"
+      onClick={() => onSelect(move.id)}
       onFocus={playHoverSound}
       onMouseEnter={playHoverSound}
     >
       <div className="fight-move-icon">
+        {/* Fall back to a text glyph when an icon asset is missing or intentionally blank. */}
         {iconSrc ? (
           <img
             alt={move.iconName || move.name}
@@ -29,6 +35,17 @@ export function MoveButton({ move }: MoveButtonProps) {
           getAbilityIconLabel(move)
         )}
       </div>
+      <div className="fight-move-meta">
+        <p className="fight-move-meta-name">{move.name}</p>
+        <p className="fight-move-meta-state">{cooldown > 0 ? `Cooldown ${cooldown}` : "Ready"}</p>
+      </div>
+      {cooldown > 0 ? (
+        <div
+          aria-hidden="true"
+          className="fight-move-cooldown-mask"
+          style={{ height: `${cooldown >= 2 ? 100 : 50}%` }}
+        />
+      ) : null}
       <div className="fight-move-tooltip" role="tooltip">
         <p className="fight-move-name">{move.name}</p>
         <p className="fight-move-description">{move.description}</p>

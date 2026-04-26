@@ -36,6 +36,13 @@
   text-transform: uppercase;
 }
 
+.fight-command-detail {
+  margin: 0;
+  color: #b8d8f4;
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+
 .fight-move-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

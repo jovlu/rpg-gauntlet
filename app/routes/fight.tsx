@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 
 import { BattleStage } from "../components/fight/battle-stage";
 import { FightStatePanel } from "../components/fight/fight-state-panel";
 import { MoveCommandPanel } from "../components/fight/move-command-panel";
+import { useBattleController } from "../lib/fight/use-battle-controller";
+import type { BattleSeed } from "../lib/fight/types";
 import type { Enemy, Move, MovesResponse, Player, PlayerResponse } from "../components/map/types";
 import { getEnemyId } from "../components/map/utils";
 import { apiUrl } from "../lib/config";
@@ -16,6 +18,7 @@ type FightEnemy = Enemy & { level: number };
 type FightState = {
   enemy: FightEnemy | null;
   player: Player | null;
+  enemyMoves: Move[];
   playerMoves: Move[];
 };
 
@@ -28,18 +31,23 @@ export function meta({}: Route.MetaArgs) {
 
 export default function Fight({ params }: Route.ComponentProps) {
   const navigate = useNavigate();
+  const levelRewardAppliedRef = useRef(false);
   const [fightState, setFightState] = useState<FightState>({
     enemy: null,
     player: null,
+    enemyMoves: [],
     playerMoves: [],
   });
 
   useEffect(() => {
     enableAmbientAudio();
+    levelRewardAppliedRef.current = false;
     void loadFight();
   }, [params.enemyid]);
 
   const loadFight = async () => {
+    // The fight screen needs the roster entry, the player snapshot, and the shared move catalog
+    // so it can resolve move ids into full move definitions.
     const [playerResponse, enemiesResponse, movesResponse] = await Promise.all([
       fetch(apiUrl("/player")),
       fetch(apiUrl("/enemies")),
@@ -52,6 +60,7 @@ export default function Fight({ params }: Route.ComponentProps) {
     const moveLookup = new globalThis.Map(
       movesData.moves.map((move) => [move.id, move]),
     );
+    // Enemy levels are currently inferred from map order until the backend provides them directly.
     const enemies = enemiesData.enemies.map((enemy, index) => ({
       ...enemy,
       level: index + 1,
@@ -61,6 +70,11 @@ export default function Fight({ params }: Route.ComponentProps) {
 
     setFightState({
       player: playerData.player,
+      enemyMoves: enemy
+        ? enemy.moves
+            .map((moveId) => moveLookup.get(moveId))
+            .filter((move): move is Move => Boolean(move))
+        : [],
       playerMoves: playerData.player.moves
         .map((moveId) => moveLookup.get(moveId))
         .filter((move): move is Move => Boolean(move)),
@@ -71,7 +85,48 @@ export default function Fight({ params }: Route.ComponentProps) {
   const player = fightState.player;
   const enemy = fightState.enemy;
   const blocked = Boolean(player && enemy && enemy.level > player.level);
+  const battleSeed = useMemo<BattleSeed | null>(() => {
+    if (!player || !enemy || blocked) {
+      return null;
+    }
 
+    return {
+      player,
+      playerMoves: fightState.playerMoves,
+      enemy,
+      enemyMoves: fightState.enemyMoves,
+    };
+  }, [blocked, enemy, fightState.enemyMoves, fightState.playerMoves, player]);
+  const battle = useBattleController(blocked ? null : battleSeed);
+
+  useEffect(() => {
+    const shouldLevelUp =
+      battle.battleState?.winner === "player" &&
+      player &&
+      enemy &&
+      enemy.level === player.level &&
+      player.level < 5 &&
+      !levelRewardAppliedRef.current;
+
+    if (!shouldLevelUp) {
+      return;
+    }
+
+    levelRewardAppliedRef.current = true;
+
+    void fetch(apiUrl("/player/level"), {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        level: player.level + 1,
+      }),
+    });
+  }, [battle.battleState?.winner, enemy, player]);
+
+  // Keep the route responsible for loading/gating state only.
+  // Turn-by-turn combat logic should live in the fight engine/controller layer.
   if (!player || !enemy) {
     return (
       <main className="home-screen fight-screen fight-screen-state px-5 py-6">
@@ -115,8 +170,29 @@ export default function Fight({ params }: Route.ComponentProps) {
       </div>
 
       <div className="fight-layout">
-        <BattleStage enemy={enemy} player={player} />
-        <MoveCommandPanel enemyName={enemy.name} moves={fightState.playerMoves} />
+        {/* Stage renders combatants; command panel owns move selection and battle copy. */}
+        {battle.battleState ? (
+          <>
+            <BattleStage enemy={battle.battleState.enemy} player={battle.battleState.player} />
+            <MoveCommandPanel
+              canAct={battle.playerCanAct}
+              cooldowns={battle.battleState.player.cooldowns}
+              detail={battle.detail}
+              headline={battle.headline}
+              moves={battle.battleState.player.moves}
+              onSelectMove={battle.selectPlayerMove}
+              phase={battle.phase}
+            />
+          </>
+        ) : (
+          <FightStatePanel
+            actionLabel="Return To Map"
+            copy="Loading battle state..."
+            kicker="Preparing"
+            onAction={() => navigate("/map")}
+            title="Summoning The Arena"
+          />
+        )}
       </div>
     </main>
   );

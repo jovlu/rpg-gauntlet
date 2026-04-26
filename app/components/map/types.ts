@@ -18,6 +18,7 @@ export type PlayerResponse = {
 
 export type MoveEffectTarget = "self" | "enemy";
 
+// Keep this aligned with the backend QTE registry so move payloads stay typed end-to-end.
 export type MoveQteType =
   | ""
   | "mash_spacebar"
@@ -38,6 +39,8 @@ export type MoveStatusEffect = {
   durationRounds: number;
 };
 
+// This mirrors the `/moves` payload from the backend combat schema.
+// The engine will later decide how each base value is scaled and applied.
 export type Move = {
   id: string;
   name: string;
