@@ -31,7 +31,7 @@ export function meta({}: Route.MetaArgs) {
 
 export default function Fight({ params }: Route.ComponentProps) {
   const navigate = useNavigate();
-  const levelRewardAppliedRef = useRef(false);
+  const victoryRewardAppliedRef = useRef(false);
   const [fightState, setFightState] = useState<FightState>({
     enemy: null,
     player: null,
@@ -41,7 +41,7 @@ export default function Fight({ params }: Route.ComponentProps) {
 
   useEffect(() => {
     enableAmbientAudio();
-    levelRewardAppliedRef.current = false;
+    victoryRewardAppliedRef.current = false;
     void loadFight();
   }, [params.enemyid]);
 
@@ -100,29 +100,50 @@ export default function Fight({ params }: Route.ComponentProps) {
   const battle = useBattleController(blocked ? null : battleSeed);
 
   useEffect(() => {
-    const shouldLevelUp =
+    const shouldApplyVictoryRewards =
       battle.battleState?.winner === "player" &&
       player &&
       enemy &&
-      enemy.level === player.level &&
-      player.level < 5 &&
-      !levelRewardAppliedRef.current;
+      !victoryRewardAppliedRef.current;
 
-    if (!shouldLevelUp) {
+    if (!shouldApplyVictoryRewards) {
       return;
     }
 
-    levelRewardAppliedRef.current = true;
+    victoryRewardAppliedRef.current = true;
 
-    void fetch(apiUrl("/player/level"), {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        level: player.level + 1,
+    const xpReward = enemy.level * (Math.floor(Math.random() * 3) + 1);
+    const rewardRequests: Promise<Response>[] = [
+      fetch(apiUrl("/player/stats"), {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          health: player.stats.health,
+          attack: player.stats.attack,
+          defense: player.stats.defense,
+          magic: player.stats.magic,
+          xp: player.stats.xp + xpReward,
+        }),
       }),
-    });
+    ];
+
+    if (enemy.level === player.level && player.level < 5) {
+      rewardRequests.push(
+        fetch(apiUrl("/player/level"), {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            level: player.level + 1,
+          }),
+        }),
+      );
+    }
+
+    void Promise.all(rewardRequests);
   }, [battle.battleState?.winner, enemy, player]);
 
   // Keep the route responsible for loading/gating state only.
