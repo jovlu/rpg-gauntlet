@@ -16,15 +16,53 @@ export type PlayerResponse = {
   player: Player;
 };
 
+export type MoveEffectTarget = "self" | "enemy";
+
+export type MoveQteType =
+  | ""
+  | "mash_spacebar"
+  | "click_bubbles"
+  | "keyboard_buttons"
+  | "type_words"
+  | "mouse_path"
+  | "hold_release"
+  | "shrinking_target_click"
+  | "arrow_sequence"
+  | "dodge_lanes"
+  | "follow_moving_target";
+
+export type MoveStatusEffect = {
+  target: MoveEffectTarget;
+  stat: StatKey;
+  amount: number;
+  durationRounds: number;
+};
+
 export type Move = {
   id: string;
   name: string;
   icon: string;
   iconName: string;
   iconIndex: string;
-  qte?: string;
+  qte: MoveQteType;
   qteValue?: number | string | null;
   description: string;
+  durationRounds: number;
+  physicalDamage: number;
+  magicalDamage: number;
+  trueDamage: number;
+  physicalDamageSelf: number;
+  magicalDamageSelf: number;
+  trueDamageSelf: number;
+  healSelf: number;
+  healOther: number;
+  trueHealSelf: number;
+  trueHealOther: number;
+  attackScaling: number;
+  magicScaling: number;
+  defenseScaling: number;
+  healthScaling: number;
+  statusEffects: MoveStatusEffect[];
 };
 
 export type MovesResponse = {
