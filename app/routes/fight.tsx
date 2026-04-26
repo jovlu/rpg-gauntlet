@@ -31,6 +31,7 @@ export function meta({}: Route.MetaArgs) {
 
 export default function Fight({ params }: Route.ComponentProps) {
   const navigate = useNavigate();
+  const battleExitTimeoutRef = useRef<number | null>(null);
   const victoryRewardAppliedRef = useRef(false);
   const [fightState, setFightState] = useState<FightState>({
     enemy: null,
@@ -42,6 +43,12 @@ export default function Fight({ params }: Route.ComponentProps) {
   useEffect(() => {
     enableAmbientAudio();
     victoryRewardAppliedRef.current = false;
+
+    if (battleExitTimeoutRef.current !== null && typeof window !== "undefined") {
+      window.clearTimeout(battleExitTimeoutRef.current);
+      battleExitTimeoutRef.current = null;
+    }
+
     void loadFight();
   }, [params.enemyid]);
 
@@ -142,6 +149,28 @@ export default function Fight({ params }: Route.ComponentProps) {
     void Promise.all(rewardRequests);
   }, [battle.battleState?.winner, enemy, player]);
 
+  useEffect(() => {
+    if (!battle.battleState?.winner || typeof window === "undefined") {
+      return;
+    }
+
+    if (battleExitTimeoutRef.current !== null) {
+      window.clearTimeout(battleExitTimeoutRef.current);
+    }
+
+    battleExitTimeoutRef.current = window.setTimeout(() => {
+      battleExitTimeoutRef.current = null;
+      navigate("/map");
+    }, 2200);
+
+    return () => {
+      if (battleExitTimeoutRef.current !== null) {
+        window.clearTimeout(battleExitTimeoutRef.current);
+        battleExitTimeoutRef.current = null;
+      }
+    };
+  }, [battle.battleState?.winner, navigate]);
+
   // Keep the route responsible for loading/gating state only.
   // Turn-by-turn combat logic should live in the fight engine/controller layer.
   if (!player || !enemy) {
@@ -190,15 +219,19 @@ export default function Fight({ params }: Route.ComponentProps) {
         {/* Stage renders combatants; command panel owns move selection and battle copy. */}
         {battle.battleState ? (
           <>
-            <BattleStage enemy={battle.battleState.enemy} player={battle.battleState.player} />
+            <BattleStage
+              enemy={battle.battleState.enemy}
+              messageDetail={battle.detail}
+              messageHeadline={battle.headline}
+              player={battle.battleState.player}
+              showMessage={battle.showStageMessage}
+              stageMessageId={battle.stageMessageId}
+            />
             <MoveCommandPanel
               canAct={battle.playerCanAct}
               cooldowns={battle.battleState.player.cooldowns}
-              detail={battle.detail}
-              headline={battle.headline}
               moves={battle.battleState.player.moves}
               onSelectMove={battle.selectPlayerMove}
-              phase={battle.phase}
             />
           </>
         ) : (

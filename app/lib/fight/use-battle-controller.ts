@@ -9,9 +9,9 @@ import {
 } from "./engine";
 import type { BattleSeed, BattleState } from "./types";
 
-const MOVE_ANNOUNCEMENT_MS = 2000;
+const MESSAGE_PRESENTATION_MS = 2600;
 
-export type BattlePhase = "idle" | "player-turn" | "announcing" | "finished";
+export type BattlePhase = "idle" | "player-turn" | "presenting" | "finished";
 
 function getWinnerMessage(state: BattleState) {
   if (state.winner === "draw") {
@@ -65,7 +65,13 @@ function formatActionDetail(state: BattleState | null) {
     );
   }
 
-  return parts.length > 0 ? parts.join(" • ") : "No effect.";
+  const summary = parts.length > 0 ? parts.join(" • ") : "No effect.";
+
+  if (state?.winner) {
+    return `${summary} • ${getWinnerMessage(state)}`;
+  }
+
+  return summary;
 }
 
 export function useBattleController(seed: BattleSeed | null) {
@@ -73,14 +79,28 @@ export function useBattleController(seed: BattleSeed | null) {
   const [phase, setPhase] = useState<BattlePhase>("idle");
   const [headline, setHeadline] = useState("Summoning the arena...");
   const [detail, setDetail] = useState<string | null>(null);
+  const [stageMessageId, setStageMessageId] = useState(0);
   const battleStateRef = useRef<BattleState | null>(null);
-  const timeoutRef = useRef<number | null>(null);
+  const phaseTimeoutRef = useRef<number | null>(null);
 
-  const clearPendingTimer = () => {
-    if (timeoutRef.current !== null && typeof window !== "undefined") {
-      window.clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
+  const clearPhaseTimer = () => {
+    if (phaseTimeoutRef.current !== null && typeof window !== "undefined") {
+      window.clearTimeout(phaseTimeoutRef.current);
+      phaseTimeoutRef.current = null;
     }
+  };
+
+  const queuePhaseChange = (callback: () => void) => {
+    if (typeof window === "undefined") {
+      callback();
+      return;
+    }
+
+    clearPhaseTimer();
+    phaseTimeoutRef.current = window.setTimeout(() => {
+      phaseTimeoutRef.current = null;
+      callback();
+    }, MESSAGE_PRESENTATION_MS);
   };
 
   const commitState = (nextState: BattleState) => {
@@ -88,21 +108,14 @@ export function useBattleController(seed: BattleSeed | null) {
     setBattleState(nextState);
   };
 
-  const queueStep = (callback: () => void) => {
-    if (typeof window === "undefined") {
-      callback();
-      return;
-    }
-
-    clearPendingTimer();
-    timeoutRef.current = window.setTimeout(() => {
-      timeoutRef.current = null;
-      callback();
-    }, MOVE_ANNOUNCEMENT_MS);
+  const presentMessage = (nextHeadline: string, nextDetail: string | null) => {
+    setHeadline(nextHeadline);
+    setDetail(nextDetail);
+    setStageMessageId((current) => current + 1);
   };
 
   useEffect(() => {
-    clearPendingTimer();
+    clearPhaseTimer();
 
     if (!seed) {
       battleStateRef.current = null;
@@ -120,57 +133,43 @@ export function useBattleController(seed: BattleSeed | null) {
     setDetail("Choose your move.");
 
     return () => {
-      clearPendingTimer();
+      clearPhaseTimer();
     };
   }, [seed]);
-
-  const finishBattle = (nextState: BattleState) => {
-    commitState(nextState);
-    setPhase("finished");
-    setHeadline(getWinnerMessage(nextState));
-    setDetail(formatActionDetail(nextState));
-  };
 
   const beginPlayerTurn = (nextState: BattleState) => {
     commitState(nextState);
     setPhase("player-turn");
-    setHeadline(`${nextState.player.name}, choose your move.`);
-    setDetail(formatActionDetail(nextState));
   };
 
   const resolveEnemyTurn = (stateAfterPlayerTurn: BattleState) => {
     if (stateAfterPlayerTurn.winner) {
-      finishBattle(stateAfterPlayerTurn);
+      setPhase("finished");
       return;
     }
 
     const enemyMove = chooseRandomMove(stateAfterPlayerTurn.enemy);
 
     if (!enemyMove) {
-      beginPlayerTurn(stateAfterPlayerTurn);
       setHeadline(`${stateAfterPlayerTurn.enemy.name} cannot act.`);
       setDetail("All enemy moves are on cooldown.");
+      setStageMessageId((current) => current + 1);
+      queuePhaseChange(() => {
+        beginPlayerTurn(stateAfterPlayerTurn);
+      });
       return;
     }
 
-    setPhase("announcing");
-    setHeadline(`${stateAfterPlayerTurn.enemy.name} uses ${enemyMove.name}.`);
-    setDetail(enemyMove.description);
+    const nextState = resolveBattleAction(stateAfterPlayerTurn, enemyMove.id);
+    commitState(nextState);
+    presentMessage(`${stateAfterPlayerTurn.enemy.name} uses ${enemyMove.name}.`, formatActionDetail(nextState));
 
-    queueStep(() => {
-      const currentState = battleStateRef.current;
+    if (nextState.winner) {
+      setPhase("finished");
+      return;
+    }
 
-      if (!currentState) {
-        return;
-      }
-
-      const nextState = resolveBattleAction(currentState, enemyMove.id);
-
-      if (nextState.winner) {
-        finishBattle(nextState);
-        return;
-      }
-
+    queuePhaseChange(() => {
       beginPlayerTurn(nextState);
     });
   };
@@ -193,19 +192,17 @@ export function useBattleController(seed: BattleSeed | null) {
       return;
     }
 
-    setPhase("announcing");
-    setHeadline(`${currentState.player.name} uses ${move.name}.`);
-    setDetail(move.description);
+    const nextState = resolveBattleAction(currentState, moveId, qteMultiplier);
+    commitState(nextState);
+    presentMessage(`${currentState.player.name} uses ${move.name}.`, formatActionDetail(nextState));
 
-    queueStep(() => {
-      const latestState = battleStateRef.current;
+    if (nextState.winner) {
+      setPhase("finished");
+      return;
+    }
 
-      if (!latestState) {
-        return;
-      }
-
-      const nextState = resolveBattleAction(latestState, moveId, qteMultiplier);
-      commitState(nextState);
+    setPhase("presenting");
+    queuePhaseChange(() => {
       resolveEnemyTurn(nextState);
     });
   };
@@ -223,5 +220,7 @@ export function useBattleController(seed: BattleSeed | null) {
       !battleState.winner &&
       playerAvailableMoves.length > 0,
     selectPlayerMove,
+    showStageMessage: phase === "presenting" || phase === "finished",
+    stageMessageId,
   };
 }

@@ -76,6 +76,31 @@
   pointer-events: none;
 }
 
+.fight-next-button {
+  place-items: stretch;
+}
+
+.fight-next-icon {
+  font-size: 2rem;
+}
+
+.fight-next-button-ready {
+  animation: fight-next-pulse 1s ease-in-out infinite;
+}
+
+@keyframes fight-next-pulse {
+  0%,
+  100% {
+    border-color: rgba(185, 235, 255, 0.45);
+    box-shadow: 0 0 0 rgba(122, 214, 255, 0);
+  }
+
+  50% {
+    border-color: #b9ebff;
+    box-shadow: 0 0 22px rgba(122, 214, 255, 0.28);
+  }
+}
+
 .fight-move-tooltip {
   position: absolute;
   left: 50%;

@@ -1,8 +1,5 @@
 .fight-command-panel {
-  display: grid;
-  grid-template-columns: minmax(0, 240px) minmax(0, 1fr);
-  gap: 1rem;
-  align-items: center;
+  display: block;
   border-width: 4px 0 0;
   padding: 0.95rem 1.1rem 1.1rem;
   background:
@@ -13,36 +10,6 @@
     inset 0 1px 0 rgba(192, 226, 255, 0.08);
 }
 
-.fight-command-copy {
-  display: grid;
-  gap: 0.45rem;
-}
-
-.fight-command-kicker {
-  margin: 0;
-  color: #7ad6ff;
-  font-family: var(--font-display);
-  font-size: 0.95rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.fight-command-title {
-  margin: 0;
-  color: #eef7ff;
-  font-family: var(--font-display);
-  font-size: 1.3rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.fight-command-detail {
-  margin: 0;
-  color: #b8d8f4;
-  font-size: 0.95rem;
-  line-height: 1.25;
-}
-
 .fight-move-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -50,8 +17,8 @@
 }
 
 @media (max-width: 900px) {
-  .fight-command-panel {
-    grid-template-columns: 1fr;
+  .fight-move-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
