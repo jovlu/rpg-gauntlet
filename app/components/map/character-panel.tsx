@@ -3,7 +3,7 @@ import { Heart, Shield, Sparkles, Sword } from "lucide-react";
 
 import { playHoverSound } from "../../lib/audio";
 import type { Move, PlayerStats, StatKey } from "./types";
-import { getAbilityIconLabel } from "./utils";
+import { getAbilityIconLabel, getAbilityIconSrc } from "./utils";
 
 const statCards: {
   key: StatKey;
@@ -68,9 +68,21 @@ type AbilityCardProps = {
 };
 
 function AbilityCard({ move, onSwapMove }: AbilityCardProps) {
+  const iconSrc = getAbilityIconSrc(move);
+
   return (
     <div className="ability-slot">
-      <div className="ability-slot-icon">{getAbilityIconLabel(move)}</div>
+      <div className="ability-slot-icon">
+        {iconSrc ? (
+          <img
+            alt={move.iconName || move.name}
+            className="ability-slot-icon-image"
+            src={iconSrc}
+          />
+        ) : (
+          getAbilityIconLabel(move)
+        )}
+      </div>
       <p className="ability-slot-name">{move.name}</p>
       <button
         className="stats-buy ability-slot-action"

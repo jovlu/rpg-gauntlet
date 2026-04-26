@@ -18,6 +18,8 @@ export type Move = {
   id: string;
   name: string;
   icon: string;
+  iconName: string;
+  iconIndex: string;
   description: string;
 };
 

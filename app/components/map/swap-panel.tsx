@@ -1,6 +1,6 @@
 import { playHoverSound } from "../../lib/audio";
 import type { Move } from "./types";
-import { getAbilityIconLabel } from "./utils";
+import { getAbilityIconLabel, getAbilityIconSrc } from "./utils";
 
 type SwapPanelProps = {
   move: Move;
@@ -8,6 +8,8 @@ type SwapPanelProps = {
 };
 
 export function SwapPanel({ move, onBack }: SwapPanelProps) {
+  const iconSrc = getAbilityIconSrc(move);
+
   return (
     <section className="stats-panel swap-panel" aria-label="Swap ability">
       <div className="stats-header">
@@ -28,7 +30,15 @@ export function SwapPanel({ move, onBack }: SwapPanelProps) {
 
       <div className="swap-panel-card">
         <div className="ability-slot-icon swap-panel-icon">
-          {getAbilityIconLabel(move)}
+          {iconSrc ? (
+            <img
+              alt={move.iconName || move.name}
+              className="ability-slot-icon-image"
+              src={iconSrc}
+            />
+          ) : (
+            getAbilityIconLabel(move)
+          )}
         </div>
         <div className="swap-panel-copy">
           <p className="swap-panel-name">{move.name}</p>

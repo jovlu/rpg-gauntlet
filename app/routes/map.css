@@ -340,6 +340,12 @@
   background: rgba(9, 16, 32, 0.7);
 }
 
+.ability-slot-icon-image {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+}
+
 .ability-slot-name {
   margin: 0.55rem 0 0;
   color: #eef7ff;
