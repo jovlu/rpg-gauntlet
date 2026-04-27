@@ -417,10 +417,81 @@
   margin-top: 0.7rem;
 }
 
+.swap-panel-options {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+}
+
+.swap-panel-scroll {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.9rem;
+}
+
+.swap-panel-scroll-button {
+  min-width: 82px;
+}
+
+.swap-panel-scroll-status {
+  margin: 0;
+  color: #93ddff;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.swap-panel-option {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 0.9rem;
+  align-items: start;
+  cursor: pointer;
+  border: 3px solid rgba(142, 199, 255, 0.24);
+  padding: 0.8rem;
+  text-align: left;
+  background: rgba(9, 16, 32, 0.45);
+  transition:
+    transform 150ms,
+    border-color 150ms,
+    filter 150ms;
+}
+
+.swap-panel-option-icon {
+  min-height: 92px;
+  font-size: 1.7rem;
+}
+
+.swap-panel-option-copy {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.swap-panel-option-name {
+  margin: 0;
+  color: #eef7ff;
+  font-family: var(--font-display);
+  font-size: 0.86rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.swap-panel-option-description {
+  margin: 0;
+  color: #b8d8f4;
+  font-size: 0.98rem;
+  line-height: 1.2;
+}
+
 .map-toolbar-button:hover,
 .map-node:hover,
 .stats-close:hover,
-.stats-buy:hover {
+.stats-buy:hover,
+.swap-panel-option:hover {
   transform: translateY(-1px);
   border-color: #b9ebff;
   filter: brightness(1.05);
@@ -492,5 +563,13 @@
 
   .swap-panel-icon {
     min-height: 120px;
+  }
+
+  .swap-panel-option {
+    grid-template-columns: 1fr;
+  }
+
+  .swap-panel-scroll {
+    grid-template-columns: 1fr;
   }
 }

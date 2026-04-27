@@ -17,6 +17,7 @@ const statCards: {
 ];
 
 type CharacterPanelProps = {
+  message?: string | null;
   playerStats: PlayerStats | null;
   playerMoves: Move[];
   onClose: () => void;
@@ -98,6 +99,7 @@ function AbilityCard({ move, onSwapMove }: AbilityCardProps) {
 }
 
 export function CharacterPanel({
+  message,
   playerStats,
   playerMoves,
   onClose,
@@ -123,6 +125,7 @@ export function CharacterPanel({
       </div>
 
       <p className="stats-xp">XP Available: {playerStats ? playerStats.xp : "--"}</p>
+      {message ? <p className="stats-message">{message}</p> : null}
 
       {playerStats ? (
         <div className="stats-grid">

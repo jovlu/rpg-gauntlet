@@ -15,6 +15,7 @@ import type {
   Player,
   PlayerResponse,
   QteDefinition,
+  UnlockedMovesResponse,
 } from "../components/map/types";
 import { getEnemyId } from "../components/map/utils";
 import { apiUrl } from "../lib/config";
@@ -132,34 +133,68 @@ export default function Fight({ params }: Route.ComponentProps) {
 
     victoryRewardAppliedRef.current = true;
 
-    const xpReward = enemy.level * (Math.floor(Math.random() * 3) + 1);
-    const rewardRequests: Promise<Response>[] = [
-      fetch(apiUrl("/player/givexp"), {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          amount: xpReward,
-        }),
-      }),
-    ];
-
-    if (enemy.level === player.level && player.level < 5) {
-      rewardRequests.push(
-        fetch(apiUrl("/player/level"), {
+    void (async () => {
+      const xpReward = enemy.level * (Math.floor(Math.random() * 3) + 1);
+      const rewardRequests: Promise<Response>[] = [
+        fetch(apiUrl("/player/givexp"), {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            level: player.level + 1,
+            amount: xpReward,
           }),
         }),
-      );
-    }
+      ];
 
-    void Promise.all(rewardRequests);
+      if (enemy.level === player.level && player.level < 5) {
+        rewardRequests.push(
+          fetch(apiUrl("/player/level"), {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              level: player.level + 1,
+            }),
+          }),
+        );
+      }
+
+      try {
+        const unlockedResponse = await fetch(apiUrl("/moves/unlocked"));
+
+        if (unlockedResponse.ok) {
+          const unlockedData = (await unlockedResponse.json()) as UnlockedMovesResponse;
+          const lockedEnemyMoves = enemy.moves.filter(
+            (moveId) => !unlockedData.unlockedMoves.includes(moveId),
+          );
+
+          if (lockedEnemyMoves.length > 0) {
+            const rewardedMoveId =
+              lockedEnemyMoves[Math.floor(Math.random() * lockedEnemyMoves.length)];
+
+            if (rewardedMoveId) {
+              rewardRequests.push(
+                fetch(apiUrl("/moves/unlocked"), {
+                  method: "PUT",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    moveId: rewardedMoveId,
+                  }),
+                }),
+              );
+            }
+          }
+        }
+      } catch {
+        // Keep other victory rewards working even if the unlock route is unavailable.
+      }
+
+      await Promise.all(rewardRequests);
+    })();
   }, [battle.battleState?.winner, enemy, player]);
 
   useEffect(() => {

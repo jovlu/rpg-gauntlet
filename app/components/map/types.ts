@@ -81,6 +81,14 @@ export type QtesResponse = {
   qtes: QteDefinition[];
 };
 
+export type UnlockedMovesResponse = {
+  unlockedMoves: string[];
+};
+
+export type PlayerMovesResponse = {
+  moves: string[];
+};
+
 export type Enemy = {
   name: string;
   index: string;

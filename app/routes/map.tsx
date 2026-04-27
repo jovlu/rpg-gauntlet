@@ -9,9 +9,12 @@ import type {
   Enemy,
   Move,
   MovesResponse,
+  Player,
+  PlayerMovesResponse,
   PlayerResponse,
   PlayerStats,
   StatKey,
+  UnlockedMovesResponse,
 } from "../components/map/types";
 import { getEnemyId } from "../components/map/utils";
 import type { Route } from "./+types/map";
@@ -38,10 +41,14 @@ export default function Map() {
   const navigate = useNavigate();
   const [overlay, setOverlay] = useState<OverlayState>({ type: "none" });
   const [message, setMessage] = useState<string | null>(null);
+  const [allMoves, setAllMoves] = useState<Move[]>([]);
   const [enemies, setEnemies] = useState<Enemy[]>([]);
+  const [player, setPlayer] = useState<Player | null>(null);
   const [playerLevel, setPlayerLevel] = useState(1);
   const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null);
   const [playerMoves, setPlayerMoves] = useState<Move[]>([]);
+  const [swapMessage, setSwapMessage] = useState<string | null>(null);
+  const [unlockedMoves, setUnlockedMoves] = useState<Move[]>([]);
 
   useEffect(() => {
     enableAmbientAudio();
@@ -56,20 +63,32 @@ export default function Map() {
   };
 
   const loadPlayerData = async () => {
-    const playerResponse = await fetch(apiUrl("/player"));
+    const [playerResponse, movesResponse, unlockedMovesResponse] = await Promise.all([
+      fetch(apiUrl("/player")),
+      fetch(apiUrl("/moves")),
+      fetch(apiUrl("/moves/unlocked")),
+    ]);
     const playerData = (await playerResponse.json()) as PlayerResponse;
-    const movesResponse = await fetch(apiUrl("/moves"));
     const movesData = (await movesResponse.json()) as MovesResponse;
+    const unlockedData = unlockedMovesResponse.ok
+      ? ((await unlockedMovesResponse.json()) as UnlockedMovesResponse)
+      : { unlockedMoves: playerData.player.moves };
     const moveLookup = new globalThis.Map(
       movesData.moves.map((move) => [move.id, move]),
     );
     const nextMoves = playerData.player.moves
       .map((moveId) => moveLookup.get(moveId))
       .filter((move): move is Move => Boolean(move));
+    const nextUnlockedMoves = unlockedData.unlockedMoves
+      .map((moveId) => moveLookup.get(moveId))
+      .filter((move): move is Move => Boolean(move));
 
+    setAllMoves(movesData.moves);
+    setPlayer(playerData.player);
     setPlayerLevel(playerData.player.level);
     setPlayerStats(playerData.player.stats);
     setPlayerMoves(nextMoves);
+    setUnlockedMoves(nextUnlockedMoves);
   };
 
   const handleExitGame = () => {
@@ -103,6 +122,54 @@ export default function Map() {
     const data = (await response.json()) as { stats: PlayerStats };
 
     setPlayerStats(data.stats);
+  };
+
+  const handleReplaceMove = async (equippedMoveId: string, unlockedMoveId: string) => {
+    if (!player) {
+      return;
+    }
+
+    const nextMoveIds = player.moves.map((moveId) =>
+      moveId === equippedMoveId ? unlockedMoveId : moveId,
+    );
+
+    let savedMoves: string[] | null = null;
+
+    try {
+      const response = await fetch(apiUrl("/player/moves"), {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          moves: nextMoveIds,
+        }),
+      });
+
+      if (!response.ok) {
+        setSwapMessage("Could not save equipped abilities.");
+        return;
+      }
+
+      const data = (await response.json()) as PlayerMovesResponse;
+      savedMoves = data.moves;
+    } catch {
+      setSwapMessage("Could not save equipped abilities.");
+      return;
+    }
+
+    const moveLookup = new globalThis.Map(allMoves.map((move) => [move.id, move]));
+    const nextEquippedMoves = (savedMoves ?? nextMoveIds)
+      .map((moveId) => moveLookup.get(moveId))
+      .filter((move): move is Move => Boolean(move));
+
+    setPlayer({
+      ...player,
+      moves: savedMoves ?? nextMoveIds,
+    });
+    setPlayerMoves(nextEquippedMoves);
+    setSwapMessage(`${moveLookup.get(unlockedMoveId)?.name ?? "Ability"} equipped.`);
+    setOverlay({ type: "character" });
   };
 
   return (
@@ -144,16 +211,26 @@ export default function Map() {
         <div className="map-overlay">
           {overlay.type === "swap" ? (
             <SwapPanel
+              equippedMoves={playerMoves}
               move={overlay.move}
               onBack={() => setOverlay({ type: "character" })}
+              onReplaceMove={(replacementMoveId) =>
+                void handleReplaceMove(overlay.move.id, replacementMoveId)
+              }
+              unlockedMoves={unlockedMoves}
+              message={swapMessage}
             />
           ) : (
             <CharacterPanel
+              message={swapMessage}
               playerStats={playerStats}
               playerMoves={playerMoves}
               onClose={() => setOverlay({ type: "none" })}
               onSpendXp={(stat) => void handleSpendXp(stat)}
-              onSwapMove={(move) => setOverlay({ type: "swap", move })}
+              onSwapMove={(move) => {
+                setSwapMessage(null);
+                setOverlay({ type: "swap", move });
+              }}
             />
           )}
         </div>
