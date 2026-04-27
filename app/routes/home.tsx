@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Maximize2 } from "lucide-react";
 import { useNavigate } from "react-router";
 
 import type { Route } from "./+types/home";
@@ -22,7 +21,26 @@ export default function Home() {
     enableAmbientAudio();
   }, []);
 
-  const handleStartRun = () => {
+  const handleFullscreen = async () => {
+    if (typeof document === "undefined") {
+      return false;
+    }
+
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      }
+
+      setMessage(null);
+      return true;
+    } catch {
+      setMessage("Fullscreen was blocked. Try again after interacting with the page.");
+      return false;
+    }
+  };
+
+  const handleStartRun = async () => {
+    await handleFullscreen();
     navigate("/map");
   };
 
@@ -34,41 +52,17 @@ export default function Home() {
     setMessage("Your browser blocked automatic closing. Close this tab to exit.");
   };
 
-  const handleFullscreen = async () => {
-    if (typeof document === "undefined") {
-      return;
-    }
-
-    try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen();
-      } else {
-        await document.documentElement.requestFullscreen();
-      }
-
-      setMessage(null);
-    } catch {
-      setMessage("Fullscreen was blocked. Try again after interacting with the page.");
-    }
-  };
-
   return (
     <main className="home-screen relative grid min-h-screen place-items-center px-5 py-6">
-      <button
-        className="home-utility-button"
-        type="button"
-        onClick={handleFullscreen}
-        aria-label="Toggle fullscreen"
-        title="Toggle fullscreen"
-        onFocus={playHoverSound}
-        onMouseEnter={playHoverSound}
-      >
-        <Maximize2 aria-hidden="true" className="h-5 w-5" strokeWidth={2.4} />
-      </button>
-
       <MenuPanel
+        fullscreenLabel="Enter fullscreen"
+        onFullscreen={() => {
+          void handleFullscreen();
+        }}
         primaryLabel="Start a new run"
-        onPrimary={handleStartRun}
+        onPrimary={() => {
+          void handleStartRun();
+        }}
         onExit={handleExitGame}
         message={message}
       />

@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 
-import type { QteDefinition } from "../../components/map/types";
+import type { EnemyMoveResponse, QteDefinition } from "../../components/map/types";
 import {
   canUseMove,
-  chooseRandomMove,
   createBattleState,
   getAvailableMoves,
   isCombatantSuperchargeReady,
@@ -11,6 +10,7 @@ import {
   MIN_SUPERCHARGE_MULTIPLIER,
   resolveBattleAction,
 } from "./engine";
+import { apiUrl } from "../config";
 import { pickBattleQte, type BattleQteSession } from "./qte-rules";
 import type { BattleSeed, BattleState } from "./types";
 
@@ -87,6 +87,25 @@ function toSuperchargeMultiplier(score: number) {
   );
 }
 
+async function fetchEnemyMoveId(state: BattleState) {
+  const response = await fetch(apiUrl("/battle/enemy-move"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      battleState: state,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch enemy move.");
+  }
+
+  const data = (await response.json()) as EnemyMoveResponse;
+  return data.moveId;
+}
+
 export function useBattleController(seed: BattleSeed | null, qtes: QteDefinition[]) {
   const [activeQte, setActiveQte] = useState<BattleQteSession | null>(null);
   const [battleState, setBattleState] = useState<BattleState | null>(null);
@@ -157,18 +176,34 @@ export function useBattleController(seed: BattleSeed | null, qtes: QteDefinition
     setPhase("player-turn");
   };
 
-  const resolveEnemyTurn = (stateAfterPlayerTurn: BattleState) => {
+  const resolveEnemyTurn = async (stateAfterPlayerTurn: BattleState) => {
     if (stateAfterPlayerTurn.winner) {
       setPhase("finished");
       return;
     }
 
-    const enemyMove = chooseRandomMove(stateAfterPlayerTurn.enemy);
+    let enemyMoveId: string | null = null;
+
+    try {
+      enemyMoveId = await fetchEnemyMoveId(stateAfterPlayerTurn);
+    } catch {
+      presentMessage(
+        `${stateAfterPlayerTurn.enemy.name} hesitates.`,
+        "The server could not choose an enemy move.",
+      );
+      queuePhaseChange(() => {
+        beginPlayerTurn(stateAfterPlayerTurn);
+      });
+      return;
+    }
+
+    const enemyMove =
+      stateAfterPlayerTurn.enemy.moves.find((move) => move.id === enemyMoveId) ?? null;
 
     if (!enemyMove) {
       presentMessage(
         `${stateAfterPlayerTurn.enemy.name} cannot act.`,
-        "All enemy moves are on cooldown.",
+        enemyMoveId ? "The chosen enemy move was invalid." : "All enemy moves are on cooldown.",
       );
       queuePhaseChange(() => {
         beginPlayerTurn(stateAfterPlayerTurn);
@@ -225,7 +260,7 @@ export function useBattleController(seed: BattleSeed | null, qtes: QteDefinition
 
     setPhase("presenting");
     queuePhaseChange(() => {
-      resolveEnemyTurn(nextState);
+      void resolveEnemyTurn(nextState);
     });
   };
 

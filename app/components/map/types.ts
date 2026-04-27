@@ -81,6 +81,10 @@ export type QtesResponse = {
   qtes: QteDefinition[];
 };
 
+export type EnemyMoveResponse = {
+  moveId: string | null;
+};
+
 export type UnlockedMovesResponse = {
   unlockedMoves: string[];
 };

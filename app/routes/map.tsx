@@ -99,6 +99,24 @@ export default function Map() {
     setMessage("Your browser blocked automatic closing. Close this tab to exit.");
   };
 
+  const handleFullscreen = async () => {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await document.documentElement.requestFullscreen();
+      }
+
+      setMessage(null);
+    } catch {
+      setMessage("Fullscreen was blocked. Try again after interacting with the page.");
+    }
+  };
+
   const handleSpendXp = async (stat: StatKey) => {
     if (!playerStats || playerStats.xp <= 0) {
       return;
@@ -196,6 +214,10 @@ export default function Map() {
       {overlay.type === "menu" ? (
         <div className="map-overlay">
           <MenuPanel
+            fullscreenLabel="Toggle fullscreen"
+            onFullscreen={() => {
+              void handleFullscreen();
+            }}
             primaryLabel="Resume"
             onPrimary={() => {
               setOverlay({ type: "none" });

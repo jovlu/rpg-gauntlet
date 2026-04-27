@@ -2,6 +2,8 @@ import { playHoverSound } from "../lib/audio";
 import "./menu-panel.css";
 
 type MenuPanelProps = {
+  fullscreenLabel?: string;
+  onFullscreen?: () => void;
   primaryLabel: string;
   onPrimary: () => void;
   onExit: () => void;
@@ -9,6 +11,8 @@ type MenuPanelProps = {
 };
 
 export function MenuPanel({
+  fullscreenLabel = "Toggle fullscreen",
+  onFullscreen,
   primaryLabel,
   onPrimary,
   onExit,
@@ -43,6 +47,16 @@ export function MenuPanel({
         >
           {primaryLabel}
         </button>
+        {onFullscreen ? (
+          <button
+            className="menu-action-button menu-action-button-secondary"
+            type="button"
+            onClick={onFullscreen}
+            {...hoverProps}
+          >
+            {fullscreenLabel}
+          </button>
+        ) : null}
         <button
           className="menu-action-button menu-action-button-secondary"
           type="button"
