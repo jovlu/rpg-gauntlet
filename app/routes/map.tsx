@@ -24,6 +24,8 @@ import { enableAmbientAudio } from "../lib/audio";
 import "./home.css";
 import "./map.css";
 
+const HEALTH_UPGRADE_STEP = 5;
+
 type OverlayState =
   | { type: "none" }
   | { type: "menu" }
@@ -127,19 +129,39 @@ export default function Map() {
       attack: playerStats.attack,
       defense: playerStats.defense,
       magic: playerStats.magic,
-      [stat]: playerStats[stat] + 1,
+      [stat]: playerStats[stat] + (stat === "health" ? HEALTH_UPGRADE_STEP : 1),
     };
 
-    const response = await fetch(apiUrl("/player/stats"), {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(nextStats),
-    });
-    const data = (await response.json()) as { stats: PlayerStats };
+    try {
+      const response = await fetch(apiUrl("/player/stats"), {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(nextStats),
+      });
+      const data = (await response.json()) as
+        | { stats: PlayerStats }
+        | { error?: string };
 
-    setPlayerStats(data.stats);
+      if (!response.ok || !("stats" in data) || !data.stats) {
+        setSwapMessage(
+          "error" in data && data.error
+            ? data.error
+            : "Could not apply that stat upgrade.",
+        );
+        return;
+      }
+
+      setPlayerStats(data.stats);
+      setSwapMessage(
+        stat === "health"
+          ? "Health increased by 5."
+          : `${stat.charAt(0).toUpperCase()}${stat.slice(1)} increased by 1.`,
+      );
+    } catch {
+      setSwapMessage("Could not apply that stat upgrade.");
+    }
   };
 
   const handleReplaceMove = async (equippedMoveId: string, unlockedMoveId: string) => {

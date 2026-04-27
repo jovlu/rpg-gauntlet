@@ -169,12 +169,13 @@ function applyStatuses(
   actorSide: BattleSide,
   actor: BattleCombatant,
   target: BattleCombatant,
+  qteMultiplier: number,
 ) {
   const appliedStatuses: BattleStatus[] = [];
   const skipActorTickIds = new Set<string>();
 
   for (const effect of move.statusEffects) {
-    const scaledAmount = Math.round(effect.amount);
+    const scaledAmount = Math.round(effect.amount * qteMultiplier);
 
     if (scaledAmount === 0 || effect.durationRounds <= 0) {
       continue;
@@ -437,6 +438,7 @@ export function resolveBattleAction(
     actorSide,
     actor,
     target,
+    qte,
   );
   const expiredStatusIds = tickActorStatuses(actor, skipActorTickIds);
   tickCooldowns(actor, move.id);

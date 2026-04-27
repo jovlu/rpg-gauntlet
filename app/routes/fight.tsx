@@ -33,6 +33,19 @@ type FightState = {
   qtes: QteDefinition[];
 };
 
+type PostBattleState =
+  | { type: "none" }
+  | { type: "defeat" }
+  | { type: "victory"; learnedMoveName: string | null };
+
+const XP_REWARD_BY_LEVEL: Record<number, number> = {
+  1: 1,
+  2: 2,
+  3: 2,
+  4: 3,
+  5: 4,
+};
+
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "RPG Gauntlet Fight" },
@@ -42,7 +55,6 @@ export function meta({}: Route.MetaArgs) {
 
 export default function Fight({ params }: Route.ComponentProps) {
   const navigate = useNavigate();
-  const battleExitTimeoutRef = useRef<number | null>(null);
   const victoryRewardAppliedRef = useRef(false);
   const [fightState, setFightState] = useState<FightState>({
     enemy: null,
@@ -51,15 +63,12 @@ export default function Fight({ params }: Route.ComponentProps) {
     playerMoves: [],
     qtes: [],
   });
+  const [postBattleState, setPostBattleState] = useState<PostBattleState>({ type: "none" });
 
   useEffect(() => {
     enableAmbientAudio();
     victoryRewardAppliedRef.current = false;
-
-    if (battleExitTimeoutRef.current !== null && typeof window !== "undefined") {
-      window.clearTimeout(battleExitTimeoutRef.current);
-      battleExitTimeoutRef.current = null;
-    }
+    setPostBattleState({ type: "none" });
 
     void loadFight();
   }, [params.enemyid]);
@@ -134,7 +143,8 @@ export default function Fight({ params }: Route.ComponentProps) {
     victoryRewardAppliedRef.current = true;
 
     void (async () => {
-      const xpReward = enemy.level * (Math.floor(Math.random() * 3) + 1);
+      const xpReward = XP_REWARD_BY_LEVEL[enemy.level] ?? enemy.level;
+      let rewardedMoveName: string | null = null;
       const rewardRequests: Promise<Response>[] = [
         fetch(apiUrl("/player/givexp"), {
           method: "PUT",
@@ -175,6 +185,8 @@ export default function Fight({ params }: Route.ComponentProps) {
               lockedEnemyMoves[Math.floor(Math.random() * lockedEnemyMoves.length)];
 
             if (rewardedMoveId) {
+              rewardedMoveName =
+                fightState.enemyMoves.find((move) => move.id === rewardedMoveId)?.name ?? null;
               rewardRequests.push(
                 fetch(apiUrl("/moves/unlocked"), {
                   method: "PUT",
@@ -193,31 +205,31 @@ export default function Fight({ params }: Route.ComponentProps) {
         // Keep other victory rewards working even if the unlock route is unavailable.
       }
 
-      await Promise.all(rewardRequests);
+      try {
+        await Promise.all(rewardRequests);
+      } catch {
+        // Keep the post-battle flow moving even if one reward write fails.
+      }
+
+      if (enemy.level >= 5) {
+        navigate("/congrats");
+        return;
+      }
+
+      setPostBattleState({
+        type: "victory",
+        learnedMoveName: rewardedMoveName,
+      });
     })();
-  }, [battle.battleState?.winner, enemy, player]);
+  }, [battle.battleState?.winner, enemy, fightState.enemyMoves, navigate, player]);
 
   useEffect(() => {
-    if (!battle.battleState?.winner || typeof window === "undefined") {
+    if (!battle.battleState?.winner || battle.battleState.winner === "player") {
       return;
     }
 
-    if (battleExitTimeoutRef.current !== null) {
-      window.clearTimeout(battleExitTimeoutRef.current);
-    }
-
-    battleExitTimeoutRef.current = window.setTimeout(() => {
-      battleExitTimeoutRef.current = null;
-      navigate("/map");
-    }, 2200);
-
-    return () => {
-      if (battleExitTimeoutRef.current !== null) {
-        window.clearTimeout(battleExitTimeoutRef.current);
-        battleExitTimeoutRef.current = null;
-      }
-    };
-  }, [battle.battleState?.winner, navigate]);
+    setPostBattleState({ type: "defeat" });
+  }, [battle.battleState?.winner]);
 
   // Keep the route responsible for loading/gating state only.
   // Turn-by-turn combat logic should live in the fight engine/controller layer.
@@ -245,6 +257,60 @@ export default function Fight({ params }: Route.ComponentProps) {
           onAction={() => navigate("/map")}
           title={`${enemy.name} Overpowers You`}
         />
+      </main>
+    );
+  }
+
+  if (postBattleState.type === "defeat") {
+    return (
+      <main className="home-screen fight-screen fight-screen-state px-5 py-6">
+        <FightStatePanel
+          actionLabel="Return To Map"
+          copy="Nothing is lost. Return to the map and challenge this fight again when you are ready."
+          kicker="Defeat"
+          onAction={() => navigate("/map")}
+          title={`${enemy.name} Prevails`}
+        />
+      </main>
+    );
+  }
+
+  if (postBattleState.type === "victory") {
+    return (
+      <main className="home-screen fight-screen">
+        <div className="fight-layout">
+          {battle.battleState ? (
+            <div className="fight-stage-stack">
+              <BattleStage
+                enemy={battle.battleState.enemy}
+                messageDetail={battle.detail}
+                messageHeadline={battle.headline}
+                player={battle.battleState.player}
+                showMessage={false}
+                stageMessageId={battle.stageMessageId}
+              />
+              <section className="fight-stage-reward" aria-label="Battle reward">
+                <p className="fight-stage-reward-kicker">Victory</p>
+                <h1 className="fight-stage-reward-title">{enemy.name} Defeated</h1>
+                <p className="fight-stage-reward-copy">
+                  {postBattleState.learnedMoveName
+                    ? `You learned ${postBattleState.learnedMoveName}. It is now available in move management for future battles.`
+                    : "You already know every move this monster can teach."}
+                </p>
+                <button
+                  className="fight-toolbar-button"
+                  type="button"
+                  onClick={() => navigate("/map")}
+                  onFocus={playHoverSound}
+                  onMouseEnter={playHoverSound}
+                >
+                  Continue
+                </button>
+              </section>
+            </div>
+          ) : null}
+          <div className="fight-command-panel fight-command-panel-disabled" aria-hidden="true" />
+        </div>
       </main>
     );
   }

@@ -5,6 +5,8 @@ import { playHoverSound } from "../../lib/audio";
 import type { Move, PlayerStats, StatKey } from "./types";
 import { getAbilityIconLabel, getAbilityIconSrc } from "./utils";
 
+const HEALTH_UPGRADE_STEP = 5;
+
 const statCards: {
   key: StatKey;
   label: string;
@@ -41,6 +43,7 @@ function StatCard({
   onSpendXp,
 }: StatCardProps) {
   const { key, label, Icon } = stat;
+  const upgradeLabel = key === "health" ? `+${HEALTH_UPGRADE_STEP}` : "+1";
 
   return (
     <div className="stats-card">
@@ -57,7 +60,7 @@ function StatCard({
         onMouseEnter={playHoverSound}
         disabled={playerStats.xp <= 0}
       >
-        +1
+        {upgradeLabel}
       </button>
     </div>
   );
