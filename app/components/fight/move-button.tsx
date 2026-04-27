@@ -19,13 +19,20 @@ export function MoveButton({
   superchargeReady,
 }: MoveButtonProps) {
   const iconSrc = getAbilityIconSrc(move);
-  const stateLabel = cooldown > 0 ? `Cooldown ${cooldown}` : "Ready";
+  const canBreakCooldown = superchargeReady && cooldown > 0 && !disabled;
+  const stateLabel = canBreakCooldown
+    ? "Break cooldown"
+    : cooldown > 0
+      ? `Cooldown ${cooldown}`
+      : superchargeReady
+        ? "Supercharge"
+        : "Ready";
   const shouldGlow = superchargeReady && cooldown <= 0 && !disabled;
 
   return (
     <button
       aria-label={`${move.name}: ${move.description}`}
-      className={`fight-move-button ${disabled ? "fight-move-button-disabled" : ""} ${shouldGlow ? "fight-move-button-supercharged" : ""}`}
+      className={`fight-move-button ${disabled ? "fight-move-button-disabled" : ""} ${shouldGlow ? "fight-move-button-supercharged" : ""} ${canBreakCooldown ? "fight-move-button-cooldown-break" : ""}`}
       disabled={disabled}
       type="button"
       onClick={() => onSelect(move.id)}

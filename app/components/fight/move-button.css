@@ -10,10 +10,58 @@
 }
 
 .fight-move-button-supercharged {
-  border-color: rgba(255, 206, 98, 0.64);
+  border-color: #ffd978;
   box-shadow:
-    0 0 0 1px rgba(255, 226, 150, 0.18),
-    0 0 24px rgba(255, 184, 66, 0.18);
+    0 0 0 2px rgba(255, 226, 150, 0.22),
+    0 0 28px rgba(255, 184, 66, 0.24);
+  animation: fight-move-supercharge-pulse 1.15s ease-in-out infinite;
+}
+
+.fight-move-button-supercharged::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border: 2px solid rgba(255, 226, 150, 0.72);
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+.fight-move-button-supercharged .fight-move-icon {
+  border-color: rgba(255, 224, 132, 0.86);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 236, 176, 0.08),
+    0 0 18px rgba(255, 197, 72, 0.16);
+}
+
+.fight-move-button-supercharged .fight-move-meta-state {
+  color: #ffd978;
+}
+
+.fight-move-button-cooldown-break {
+  border-color: rgba(131, 222, 255, 0.74);
+  box-shadow:
+    0 0 0 2px rgba(145, 229, 255, 0.18),
+    0 0 22px rgba(92, 196, 255, 0.16);
+}
+
+.fight-move-button-cooldown-break::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border: 2px solid rgba(164, 236, 255, 0.66);
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.fight-move-button-cooldown-break .fight-move-icon {
+  border-color: rgba(145, 229, 255, 0.82);
+  box-shadow:
+    inset 0 0 0 2px rgba(196, 246, 255, 0.08),
+    0 0 16px rgba(92, 196, 255, 0.12);
+}
+
+.fight-move-button-cooldown-break .fight-move-meta-state {
+  color: #9ee7ff;
 }
 
 .fight-move-button:hover {
@@ -105,6 +153,21 @@
   50% {
     border-color: #b9ebff;
     box-shadow: 0 0 22px rgba(122, 214, 255, 0.28);
+  }
+}
+
+@keyframes fight-move-supercharge-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px rgba(255, 226, 150, 0.18),
+      0 0 22px rgba(255, 184, 66, 0.16);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 3px rgba(255, 230, 156, 0.28),
+      0 0 34px rgba(255, 197, 72, 0.3);
   }
 }
 

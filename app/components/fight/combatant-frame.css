@@ -61,6 +61,59 @@
   text-transform: uppercase;
 }
 
+.fight-frame-supercharge {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+}
+
+.fight-frame-supercharge-copy {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.fight-frame-supercharge-label,
+.fight-frame-supercharge-state {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fight-frame-supercharge-label {
+  color: #9ddfff;
+}
+
+.fight-frame-supercharge-state {
+  color: #8fc1f0;
+}
+
+.fight-frame-supercharge-state-ready {
+  color: #ffd978;
+}
+
+.fight-frame-supercharge-track {
+  overflow: hidden;
+  height: 10px;
+  border: 2px solid rgba(146, 205, 255, 0.28);
+  background: rgba(7, 12, 24, 0.72);
+}
+
+.fight-frame-supercharge-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #65dfff, #7ee6ca 55%, #f4c86b);
+  box-shadow: 0 0 14px rgba(115, 237, 255, 0.22);
+  transition: width 140ms ease;
+}
+
+.fight-frame-supercharge-fill-ready {
+  background: linear-gradient(90deg, #ffd15c, #ffe999);
+  box-shadow: 0 0 16px rgba(255, 212, 92, 0.3);
+}
+
 .fight-frame-statuses {
   display: flex;
   flex-wrap: wrap;

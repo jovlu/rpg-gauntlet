@@ -62,6 +62,18 @@
   text-transform: uppercase;
 }
 
+.fight-stage-message-title::after,
+.fight-stage-message-detail::after {
+  content: "";
+  display: inline-block;
+  width: 0.58em;
+  height: 1em;
+  margin-left: 0.12em;
+  vertical-align: -0.16em;
+  background: rgba(214, 237, 255, 0.88);
+  animation: fight-stage-caret-blink 0.8s steps(1, end) infinite;
+}
+
 .fight-stage-message-detail {
   margin-top: 0.55rem;
   color: #c2dcf6;
@@ -111,6 +123,18 @@
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
+  }
+}
+
+@keyframes fight-stage-caret-blink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+
+  46%,
+  100% {
+    opacity: 0;
   }
 }
 

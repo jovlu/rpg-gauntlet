@@ -11,9 +11,16 @@ import type {
 
 export const MOVE_COOLDOWN_TURNS = 2;
 export const DEFAULT_QTE_MULTIPLIER = 1;
-export const MOVE_SUPERCHARGE_TURNS = 3;
+export const MIN_SUPERCHARGE_TURNS = 2;
+export const MAX_SUPERCHARGE_TURNS = 4;
 export const MIN_SUPERCHARGE_MULTIPLIER = 0.5;
-export const MAX_SUPERCHARGE_MULTIPLIER = 2.5;
+export const MAX_SUPERCHARGE_MULTIPLIER = 1.75;
+
+type ResolveBattleActionOptions = {
+  consumeSupercharge?: boolean;
+  ignoreCooldown?: boolean;
+  wasSupercharged?: boolean;
+};
 
 function toCombatStats(stats: CombatStats | PlayerStats): CombatStats {
   return {
@@ -37,6 +44,10 @@ function createCooldownMap(moves: Move[]) {
   return Object.fromEntries(moves.map((move) => [move.id, 0])) as Record<string, number>;
 }
 
+function rollSuperchargeThreshold(rng = Math.random) {
+  return MIN_SUPERCHARGE_TURNS + Math.floor(rng() * (MAX_SUPERCHARGE_TURNS - MIN_SUPERCHARGE_TURNS + 1));
+}
+
 function cloneStatus(status: BattleStatus): BattleStatus {
   return { ...status };
 }
@@ -48,6 +59,7 @@ function cloneCombatant(combatant: BattleCombatant): BattleCombatant {
     statModifiers: { ...combatant.statModifiers },
     cooldowns: { ...combatant.cooldowns },
     movesSinceSupercharge: combatant.movesSinceSupercharge,
+    nextSuperchargeAt: combatant.nextSuperchargeAt,
     superchargeReady: combatant.superchargeReady,
     activeStatuses: combatant.activeStatuses.map(cloneStatus),
     moves: [...combatant.moves],
@@ -157,14 +169,12 @@ function applyStatuses(
   actorSide: BattleSide,
   actor: BattleCombatant,
   target: BattleCombatant,
-  actorStats: CombatStats,
-  qteMultiplier: number,
 ) {
   const appliedStatuses: BattleStatus[] = [];
   const skipActorTickIds = new Set<string>();
 
   for (const effect of move.statusEffects) {
-    const scaledAmount = getScaledMagnitude(effect.amount, move, actorStats, qteMultiplier);
+    const scaledAmount = Math.round(effect.amount);
 
     if (scaledAmount === 0 || effect.durationRounds <= 0) {
       continue;
@@ -208,13 +218,14 @@ function tickCooldowns(combatant: BattleCombatant, usedMoveId: string) {
 function tickSupercharge(combatant: BattleCombatant, usedSupercharge: boolean) {
   if (usedSupercharge) {
     combatant.movesSinceSupercharge = 0;
+    combatant.nextSuperchargeAt = rollSuperchargeThreshold();
     combatant.superchargeReady = false;
     return;
   }
 
   const nextCount = combatant.movesSinceSupercharge + 1;
-  combatant.movesSinceSupercharge = Math.min(MOVE_SUPERCHARGE_TURNS, nextCount);
-  combatant.superchargeReady = nextCount >= MOVE_SUPERCHARGE_TURNS;
+  combatant.movesSinceSupercharge = Math.min(combatant.nextSuperchargeAt, nextCount);
+  combatant.superchargeReady = nextCount >= combatant.nextSuperchargeAt;
 }
 
 function tickActorStatuses(combatant: BattleCombatant, skipIds: Set<string>) {
@@ -267,6 +278,7 @@ export function createBattleCombatant(
     statModifiers: createEmptyModifiers(),
     cooldowns: createCooldownMap(data.moves),
     movesSinceSupercharge: 0,
+    nextSuperchargeAt: rollSuperchargeThreshold(),
     superchargeReady: false,
     activeStatuses: [],
     moves: data.moves,
@@ -356,6 +368,7 @@ export function resolveBattleAction(
   state: BattleState,
   moveId: string,
   qteMultiplier = DEFAULT_QTE_MULTIPLIER,
+  options: ResolveBattleActionOptions = {},
 ) {
   if (state.winner) {
     return state;
@@ -373,12 +386,13 @@ export function resolveBattleAction(
   const target = nextState[targetSide];
   const move = getMoveById(actor, moveId);
 
-  if (!move || !canUseMove(actor, moveId)) {
+  if (!move || (!options.ignoreCooldown && !canUseMove(actor, moveId))) {
     return state;
   }
 
   const qte = clampQteMultiplier(qteMultiplier);
-  const wasSupercharged = actor.superchargeReady;
+  const wasSupercharged = options.wasSupercharged ?? false;
+  const consumeSupercharge = options.consumeSupercharge ?? wasSupercharged;
   const actorStats = getEffectiveStats(actor);
 
   const physicalDamage = Math.max(
@@ -423,12 +437,10 @@ export function resolveBattleAction(
     actorSide,
     actor,
     target,
-    actorStats,
-    qte,
   );
   const expiredStatusIds = tickActorStatuses(actor, skipActorTickIds);
   tickCooldowns(actor, move.id);
-  tickSupercharge(actor, wasSupercharged);
+  tickSupercharge(actor, consumeSupercharge);
   rebuildCombatantState(actor);
   rebuildCombatantState(target);
 

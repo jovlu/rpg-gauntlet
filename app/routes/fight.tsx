@@ -249,7 +249,6 @@ export default function Fight({ params }: Route.ComponentProps) {
               cooldowns={battle.battleState.player.cooldowns}
               moves={battle.battleState.player.moves}
               onSelectMove={battle.selectPlayerMove}
-              superchargeProgress={battle.battleState.player.movesSinceSupercharge}
               superchargeReady={battle.battleState.player.superchargeReady}
             />
           </>

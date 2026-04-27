@@ -198,12 +198,21 @@ export function useBattleController(seed: BattleSeed | null, qtes: QteDefinition
     moveId: string,
     moveName: string,
     appliedMultiplier: number,
+    options?: {
+      consumeSupercharge?: boolean;
+      ignoreCooldown?: boolean;
+      wasSupercharged?: boolean;
+    },
   ) => {
-    const nextState = resolveBattleAction(currentState, moveId, appliedMultiplier);
+    const nextState = resolveBattleAction(currentState, moveId, appliedMultiplier, options);
     commitState(nextState);
 
     const nextDetail =
-      appliedMultiplier === 1
+      options?.wasSupercharged
+        ? `${Math.round(appliedMultiplier * 100)}% surge | ${formatActionDetail(nextState)}`
+        : options?.ignoreCooldown
+          ? `Cooldown broken | ${formatActionDetail(nextState)}`
+          : appliedMultiplier === 1
         ? formatActionDetail(nextState)
         : `${Math.round(appliedMultiplier * 100)}% surge | ${formatActionDetail(nextState)}`;
 
@@ -227,14 +236,29 @@ export function useBattleController(seed: BattleSeed | null, qtes: QteDefinition
       !currentState ||
       phase !== "player-turn" ||
       currentState.turn !== "player" ||
-      !canUseMove(currentState.player, moveId)
+      !currentState.player.moves.find((entry) => entry.id === moveId)
     ) {
+      return;
+    }
+
+    const canBreakCooldown =
+      currentState.player.superchargeReady && !canUseMove(currentState.player, moveId);
+
+    if (!canUseMove(currentState.player, moveId) && !canBreakCooldown) {
       return;
     }
 
     const move = currentState.player.moves.find((entry) => entry.id === moveId);
 
     if (!move) {
+      return;
+    }
+
+    if (canBreakCooldown) {
+      resolvePlayerMove(currentState, move.id, move.name, 1, {
+        consumeSupercharge: true,
+        ignoreCooldown: true,
+      });
       return;
     }
 
@@ -265,7 +289,10 @@ export function useBattleController(seed: BattleSeed | null, qtes: QteDefinition
     const qteMultiplier = toSuperchargeMultiplier(score);
 
     setActiveQte(null);
-    resolvePlayerMove(currentState, activeQte.moveId, activeQte.moveName, qteMultiplier);
+    resolvePlayerMove(currentState, activeQte.moveId, activeQte.moveName, qteMultiplier, {
+      consumeSupercharge: true,
+      wasSupercharged: true,
+    });
   };
 
   const playerAvailableMoves = battleState ? getAvailableMoves(battleState.player) : [];

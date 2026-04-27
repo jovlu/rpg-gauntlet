@@ -36,6 +36,7 @@ export type BattleCombatant = {
   statModifiers: Record<StatKey, number>;
   cooldowns: Record<string, number>;
   movesSinceSupercharge: number;
+  nextSuperchargeAt: number;
   superchargeReady: boolean;
   activeStatuses: BattleStatus[];
   moves: Move[];
