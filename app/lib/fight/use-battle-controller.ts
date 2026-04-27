@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import type { QteDefinition } from "../../components/map/types";
 import {
   canUseMove,
   chooseRandomMove,
@@ -7,11 +8,12 @@ import {
   getAvailableMoves,
   resolveBattleAction,
 } from "./engine";
+import { pickBattleQte, type BattleQteSession } from "./qte-rules";
 import type { BattleSeed, BattleState } from "./types";
 
 const MESSAGE_PRESENTATION_MS = 2600;
 
-export type BattlePhase = "idle" | "player-turn" | "presenting" | "finished";
+export type BattlePhase = "idle" | "player-turn" | "qte" | "presenting" | "finished";
 
 function getWinnerMessage(state: BattleState) {
   if (state.winner === "draw") {
@@ -74,7 +76,8 @@ function formatActionDetail(state: BattleState | null) {
   return summary;
 }
 
-export function useBattleController(seed: BattleSeed | null) {
+export function useBattleController(seed: BattleSeed | null, qtes: QteDefinition[]) {
+  const [activeQte, setActiveQte] = useState<BattleQteSession | null>(null);
   const [battleState, setBattleState] = useState<BattleState | null>(null);
   const [phase, setPhase] = useState<BattlePhase>("idle");
   const [headline, setHeadline] = useState("Summoning the arena...");
@@ -116,6 +119,7 @@ export function useBattleController(seed: BattleSeed | null) {
 
   useEffect(() => {
     clearPhaseTimer();
+    setActiveQte(null);
 
     if (!seed) {
       battleStateRef.current = null;
@@ -151,9 +155,10 @@ export function useBattleController(seed: BattleSeed | null) {
     const enemyMove = chooseRandomMove(stateAfterPlayerTurn.enemy);
 
     if (!enemyMove) {
-      setHeadline(`${stateAfterPlayerTurn.enemy.name} cannot act.`);
-      setDetail("All enemy moves are on cooldown.");
-      setStageMessageId((current) => current + 1);
+      presentMessage(
+        `${stateAfterPlayerTurn.enemy.name} cannot act.`,
+        "All enemy moves are on cooldown.",
+      );
       queuePhaseChange(() => {
         beginPlayerTurn(stateAfterPlayerTurn);
       });
@@ -162,7 +167,10 @@ export function useBattleController(seed: BattleSeed | null) {
 
     const nextState = resolveBattleAction(stateAfterPlayerTurn, enemyMove.id);
     commitState(nextState);
-    presentMessage(`${stateAfterPlayerTurn.enemy.name} uses ${enemyMove.name}.`, formatActionDetail(nextState));
+    presentMessage(
+      `${stateAfterPlayerTurn.enemy.name} uses ${enemyMove.name}.`,
+      formatActionDetail(nextState),
+    );
 
     if (nextState.winner) {
       setPhase("finished");
@@ -174,7 +182,31 @@ export function useBattleController(seed: BattleSeed | null) {
     });
   };
 
-  const selectPlayerMove = (moveId: string, qteMultiplier = 1) => {
+  const resolvePlayerMove = (
+    currentState: BattleState,
+    moveId: string,
+    moveName: string,
+    qteMultiplier: number,
+  ) => {
+    const nextState = resolveBattleAction(currentState, moveId, qteMultiplier);
+    commitState(nextState);
+    presentMessage(
+      `${currentState.player.name} uses ${moveName}.`,
+      `${Math.round(qteMultiplier * 100)}% timing • ${formatActionDetail(nextState)}`,
+    );
+
+    if (nextState.winner) {
+      setPhase("finished");
+      return;
+    }
+
+    setPhase("presenting");
+    queuePhaseChange(() => {
+      resolveEnemyTurn(nextState);
+    });
+  };
+
+  const selectPlayerMove = (moveId: string) => {
     const currentState = battleStateRef.current;
 
     if (
@@ -192,25 +224,40 @@ export function useBattleController(seed: BattleSeed | null) {
       return;
     }
 
-    const nextState = resolveBattleAction(currentState, moveId, qteMultiplier);
-    commitState(nextState);
-    presentMessage(`${currentState.player.name} uses ${move.name}.`, formatActionDetail(nextState));
+    const qteSession = pickBattleQte(
+      qtes,
+      move,
+      Math.max(currentState.player.level, currentState.enemy.level),
+    );
 
-    if (nextState.winner) {
-      setPhase("finished");
+    if (!qteSession) {
+      resolvePlayerMove(currentState, move.id, move.name, 1);
       return;
     }
 
-    setPhase("presenting");
-    queuePhaseChange(() => {
-      resolveEnemyTurn(nextState);
-    });
+    setActiveQte(qteSession);
+    setPhase("qte");
+  };
+
+  const completeQte = (score: number) => {
+    const currentState = battleStateRef.current;
+
+    if (!activeQte || !currentState || phase !== "qte") {
+      return;
+    }
+
+    const qteMultiplier = Math.max(0, Math.min(1, score));
+
+    setActiveQte(null);
+    resolvePlayerMove(currentState, activeQte.moveId, activeQte.moveName, qteMultiplier);
   };
 
   const playerAvailableMoves = battleState ? getAvailableMoves(battleState.player) : [];
 
   return {
+    activeQte,
     battleState,
+    completeQte,
     detail,
     headline,
     phase,

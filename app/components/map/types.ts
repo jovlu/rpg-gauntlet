@@ -24,13 +24,18 @@ export type MoveQteType =
   | "mash_spacebar"
   | "click_bubbles"
   | "keyboard_buttons"
-  | "type_words"
-  | "mouse_path"
   | "hold_release"
-  | "shrinking_target_click"
-  | "arrow_sequence"
-  | "dodge_lanes"
-  | "follow_moving_target";
+  | "arrow_sequence";
+
+export type QteValue = number | string[];
+
+export type QteDefinition = {
+  id: string;
+  name: string;
+  qte: Exclude<MoveQteType, "">;
+  qteValue: QteValue;
+  description: string;
+};
 
 export type MoveStatusEffect = {
   target: MoveEffectTarget;
@@ -70,6 +75,10 @@ export type Move = {
 
 export type MovesResponse = {
   moves: Move[];
+};
+
+export type QtesResponse = {
+  qtes: QteDefinition[];
 };
 
 export type Enemy = {

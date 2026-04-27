@@ -1,0 +1,148 @@
+.support-qte-screen {
+  min-height: 100vh;
+  background:
+    linear-gradient(180deg, rgba(5, 10, 18, 0.42), rgba(5, 10, 18, 0.8)),
+    radial-gradient(circle at top left, rgba(97, 143, 255, 0.12), transparent 0 28%);
+}
+
+.support-qte-toolbar {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.support-qte-toolbar-button {
+  cursor: pointer;
+  border: 3px solid #89a5d6;
+  padding: 0.7rem 1rem;
+  color: #f4fbff;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: linear-gradient(to bottom, #4d5b90, #334165);
+}
+
+.support-qte-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.support-qte-sidebar,
+.support-qte-preview,
+.support-qte-results {
+  border: 4px solid #7089bb;
+  background: rgba(8, 14, 28, 0.92);
+  box-shadow: 0 0 0 4px #1c2842;
+}
+
+.support-qte-sidebar,
+.support-qte-preview {
+  padding: 1rem;
+}
+
+.support-qte-kicker,
+.support-qte-title,
+.support-qte-copy,
+.support-qte-results-label,
+.support-qte-results-value {
+  margin: 0;
+}
+
+.support-qte-kicker,
+.support-qte-title,
+.support-qte-level-label,
+.support-qte-list-button {
+  font-family: var(--font-display);
+}
+
+.support-qte-kicker {
+  color: #7ad6ff;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.support-qte-title {
+  margin-top: 0.45rem;
+  color: #eef7ff;
+  font-size: 1.2rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.support-qte-copy {
+  margin-top: 0.6rem;
+  color: #b8d8f4;
+}
+
+.support-qte-level-label {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 1rem;
+  color: #d9ecff;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.support-qte-level-input {
+  width: 100%;
+}
+
+.support-qte-list {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+
+.support-qte-list-button {
+  display: grid;
+  gap: 0.2rem;
+  cursor: pointer;
+  border: 3px solid rgba(142, 199, 255, 0.24);
+  padding: 0.75rem;
+  color: #eef7ff;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  background: rgba(9, 16, 32, 0.6);
+}
+
+.support-qte-list-button small {
+  color: #8fc1f0;
+  font-size: 0.72rem;
+}
+
+.support-qte-list-button-active {
+  border-color: #b9ebff;
+  box-shadow: 0 0 18px rgba(122, 214, 255, 0.18);
+}
+
+.support-qte-results {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+}
+
+.support-qte-results-label {
+  color: #8fc1f0;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.support-qte-results-value {
+  margin-top: 0.35rem;
+  color: #eef7ff;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 900px) {
+  .support-qte-layout {
+    grid-template-columns: 1fr;
+  }
+}

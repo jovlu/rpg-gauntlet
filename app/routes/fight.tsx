@@ -4,9 +4,18 @@ import { useNavigate } from "react-router";
 import { BattleStage } from "../components/fight/battle-stage";
 import { FightStatePanel } from "../components/fight/fight-state-panel";
 import { MoveCommandPanel } from "../components/fight/move-command-panel";
+import { FightQteOverlay } from "../components/fight/qte/fight-qte-overlay";
 import { useBattleController } from "../lib/fight/use-battle-controller";
+import { loadQtes } from "../lib/fight/load-qtes";
 import type { BattleSeed } from "../lib/fight/types";
-import type { Enemy, Move, MovesResponse, Player, PlayerResponse } from "../components/map/types";
+import type {
+  Enemy,
+  Move,
+  MovesResponse,
+  Player,
+  PlayerResponse,
+  QteDefinition,
+} from "../components/map/types";
 import { getEnemyId } from "../components/map/utils";
 import { apiUrl } from "../lib/config";
 import { enableAmbientAudio, playHoverSound } from "../lib/audio";
@@ -20,6 +29,7 @@ type FightState = {
   player: Player | null;
   enemyMoves: Move[];
   playerMoves: Move[];
+  qtes: QteDefinition[];
 };
 
 export function meta({}: Route.MetaArgs) {
@@ -38,6 +48,7 @@ export default function Fight({ params }: Route.ComponentProps) {
     player: null,
     enemyMoves: [],
     playerMoves: [],
+    qtes: [],
   });
 
   useEffect(() => {
@@ -55,10 +66,11 @@ export default function Fight({ params }: Route.ComponentProps) {
   const loadFight = async () => {
     // The fight screen needs the roster entry, the player snapshot, and the shared move catalog
     // so it can resolve move ids into full move definitions.
-    const [playerResponse, enemiesResponse, movesResponse] = await Promise.all([
+    const [playerResponse, enemiesResponse, movesResponse, qtes] = await Promise.all([
       fetch(apiUrl("/player")),
       fetch(apiUrl("/enemies")),
       fetch(apiUrl("/moves")),
+      loadQtes(),
     ]);
 
     const playerData = (await playerResponse.json()) as PlayerResponse;
@@ -85,6 +97,7 @@ export default function Fight({ params }: Route.ComponentProps) {
       playerMoves: playerData.player.moves
         .map((moveId) => moveLookup.get(moveId))
         .filter((move): move is Move => Boolean(move)),
+      qtes,
       enemy,
     });
   };
@@ -104,7 +117,7 @@ export default function Fight({ params }: Route.ComponentProps) {
       enemyMoves: fightState.enemyMoves,
     };
   }, [blocked, enemy, fightState.enemyMoves, fightState.playerMoves, player]);
-  const battle = useBattleController(blocked ? null : battleSeed);
+  const battle = useBattleController(blocked ? null : battleSeed, fightState.qtes);
 
   useEffect(() => {
     const shouldApplyVictoryRewards =
@@ -226,6 +239,10 @@ export default function Fight({ params }: Route.ComponentProps) {
               player={battle.battleState.player}
               showMessage={battle.showStageMessage}
               stageMessageId={battle.stageMessageId}
+            />
+            <FightQteOverlay
+              onComplete={battle.completeQte}
+              session={battle.activeQte}
             />
             <MoveCommandPanel
               canAct={battle.playerCanAct}
