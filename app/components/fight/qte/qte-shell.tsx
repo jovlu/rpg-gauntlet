@@ -1,15 +1,25 @@
 import type { ReactNode } from "react";
 
 type QteShellProps = {
+  className?: string;
   children: ReactNode;
   description: string;
   prompt: string;
   title: string;
 };
 
-export function QteShell({ children, description, prompt, title }: QteShellProps) {
+export function QteShell({
+  children,
+  className,
+  description,
+  prompt,
+  title,
+}: QteShellProps) {
   return (
-    <section className="fight-qte-shell" aria-label={title}>
+    <section
+      className={className ? `fight-qte-shell ${className}` : "fight-qte-shell"}
+      aria-label={title}
+    >
       <div className="fight-qte-copy">
         <p className="fight-qte-kicker">Quick Time Event</p>
         <h2 className="fight-qte-title">{title}</h2>

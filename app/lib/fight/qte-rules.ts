@@ -87,7 +87,7 @@ export function createBattleQteSession(
   rng = Math.random,
 ): BattleQteSession {
   const scaledLevel = clampLevel(level);
-  const prompt = `${definition.name} powers up ${move.name}.`;
+  const prompt = `Channel the surge into ${move.name}.`;
 
   switch (definition.qte) {
     case "mash_spacebar": {

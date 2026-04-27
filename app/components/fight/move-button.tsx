@@ -8,15 +8,24 @@ type MoveButtonProps = {
   disabled: boolean;
   move: Move;
   onSelect: (moveId: string) => void;
+  superchargeReady: boolean;
 };
 
-export function MoveButton({ cooldown, disabled, move, onSelect }: MoveButtonProps) {
+export function MoveButton({
+  cooldown,
+  disabled,
+  move,
+  onSelect,
+  superchargeReady,
+}: MoveButtonProps) {
   const iconSrc = getAbilityIconSrc(move);
+  const stateLabel = cooldown > 0 ? `Cooldown ${cooldown}` : "Ready";
+  const shouldGlow = superchargeReady && cooldown <= 0 && !disabled;
 
   return (
     <button
       aria-label={`${move.name}: ${move.description}`}
-      className={`fight-move-button ${disabled ? "fight-move-button-disabled" : ""}`}
+      className={`fight-move-button ${disabled ? "fight-move-button-disabled" : ""} ${shouldGlow ? "fight-move-button-supercharged" : ""}`}
       disabled={disabled}
       type="button"
       onClick={() => onSelect(move.id)}
@@ -37,7 +46,7 @@ export function MoveButton({ cooldown, disabled, move, onSelect }: MoveButtonPro
       </div>
       <div className="fight-move-meta">
         <p className="fight-move-meta-name">{move.name}</p>
-        <p className="fight-move-meta-state">{cooldown > 0 ? `Cooldown ${cooldown}` : "Ready"}</p>
+        <p className="fight-move-meta-state">{stateLabel}</p>
       </div>
       {cooldown > 0 ? (
         <div

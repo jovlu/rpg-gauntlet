@@ -35,6 +35,8 @@ export type BattleCombatant = {
   baseStats: CombatStats;
   statModifiers: Record<StatKey, number>;
   cooldowns: Record<string, number>;
+  movesSinceSupercharge: number;
+  superchargeReady: boolean;
   activeStatuses: BattleStatus[];
   moves: Move[];
 };
@@ -46,6 +48,7 @@ export type BattleActionSummary = {
   moveId: string;
   moveName: string;
   qteMultiplier: number;
+  wasSupercharged: boolean;
   damageDealt: number;
   selfDamageDealt: number;
   healingDone: number;

@@ -1,6 +1,5 @@
 import type { BattleQteSession } from "../../../lib/fight/qte-rules";
-import { FightQteContent } from "./fight-qte-content";
-import { QteShell } from "./qte-shell";
+import { QteSessionPlayer } from "./qte-session-player";
 import "./fight-qte.css";
 
 type FightQteOverlayProps = {
@@ -16,15 +15,5 @@ export function FightQteOverlay({
     return null;
   }
 
-  return (
-    <div className="fight-qte-overlay">
-      <QteShell
-        description={session.definition.description}
-        prompt={session.prompt}
-        title={session.definition.name}
-      >
-        <FightQteContent onComplete={onComplete} session={session} />
-      </QteShell>
-    </div>
-  );
+  return <QteSessionPlayer mode="overlay" onResolved={onComplete} session={session} />;
 }

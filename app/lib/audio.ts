@@ -1,9 +1,27 @@
 import { Howl } from "howler";
+import dvorakTrackUrl from "../assets/Sounds/Dvorak - Symphony No. 9 (From the New World) Mvmt 4/Dvorak - Symphony No. 9 (From the New World) Mvmt 4 (128kbit_AAC).m4a";
+import peerGyntTrackUrl from "../assets/Sounds/peergynt/peergynt.m4a";
+import tchaikovskyTrackUrl from "../assets/Sounds/Tchaikovsky; The Tempest, Op. 18, TH 44/Tchaikovsky; The Tempest, Op. 18, TH 44 (128kbit_AAC).m4a";
+import holstTrackUrl from "../assets/Sounds/The Planets, Op. 32; I. Mars, the Bringer of War (128kbit_AAC).m4a";
 
 let hoverSound: Howl | null = null;
-let ambienceSound: Howl | null = null;
 let ambienceEnabled = false;
 let lastHoverAt = 0;
+let currentAmbienceIndex = 0;
+
+type PlaylistHowl = Howl & {
+  on: (event: "end", callback: () => void) => void;
+  stop: () => void;
+};
+
+const ambienceTrackUrls = [
+  peerGyntTrackUrl,
+  holstTrackUrl,
+  dvorakTrackUrl,
+  tchaikovskyTrackUrl,
+] as const;
+
+let ambiencePlaylist: PlaylistHowl[] | null = null;
 
 function clampSample(value: number) {
   return Math.max(-1, Math.min(1, value));
@@ -75,21 +93,53 @@ function getHoverSound() {
   return hoverSound;
 }
 
-function getAmbienceSound() {
-  if (ambienceSound) {
-    return ambienceSound;
+function playAmbientTrack(index: number) {
+  const playlist = getAmbiencePlaylist();
+  const nextIndex = ((index % playlist.length) + playlist.length) % playlist.length;
+  const track = playlist[nextIndex];
+
+  if (!track) {
+    return;
   }
 
-  ambienceSound = new Howl({
-    src: ["/sounds/peergynt/peergynt.m4a"],
-    autoplay: false,
-    format: ["m4a"],
-    html5: true,
-    loop: true,
-    volume: 0.28,
+  currentAmbienceIndex = nextIndex;
+
+  if (track.playing()) {
+    return;
+  }
+
+  playlist.forEach((playlistTrack, playlistIndex) => {
+    if (playlistIndex !== nextIndex && playlistTrack.playing()) {
+      playlistTrack.stop();
+    }
   });
 
-  return ambienceSound;
+  track.play();
+}
+
+function getAmbiencePlaylist() {
+  if (ambiencePlaylist) {
+    return ambiencePlaylist;
+  }
+
+  ambiencePlaylist = ambienceTrackUrls.map((src, index) => {
+    const track = new Howl({
+      src: [src],
+      autoplay: false,
+      format: ["m4a"],
+      html5: true,
+      loop: false,
+      volume: 0.28,
+    }) as PlaylistHowl;
+
+    track.on("end", () => {
+      playAmbientTrack(index + 1);
+    });
+
+    return track;
+  });
+
+  return ambiencePlaylist;
 }
 
 export function enableAmbientAudio() {
@@ -100,10 +150,11 @@ export function enableAmbientAudio() {
   ambienceEnabled = true;
 
   const start = () => {
-    const ambience = getAmbienceSound();
+    const playlist = getAmbiencePlaylist();
+    const activeTrack = playlist.find((track) => track.playing());
 
-    if (!ambience.playing()) {
-      ambience.play();
+    if (!activeTrack) {
+      playAmbientTrack(currentAmbienceIndex);
     }
 
     window.removeEventListener("pointerdown", start);

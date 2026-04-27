@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 
-import { FightQteContent } from "../components/fight/qte/fight-qte-content";
-import { QteShell } from "../components/fight/qte/qte-shell";
+import { QteSessionPlayer } from "../components/fight/qte/qte-session-player";
 import type { QteDefinition } from "../components/map/types";
 import { enableAmbientAudio, playHoverSound } from "../lib/audio";
 import { loadQtes } from "../lib/fight/load-qtes";
@@ -123,18 +122,14 @@ export default function SupportQtes() {
 
         <section className="support-qte-preview">
           {session ? (
-            <QteShell
-              description={session.definition.description}
-              prompt={session.prompt}
-              title={`${session.definition.name} • Level ${selectedLevel}`}
-            >
-              <FightQteContent
-                onComplete={(score) => {
-                  setLastScore(score);
-                }}
-                session={session}
-              />
-            </QteShell>
+            <QteSessionPlayer
+              mode="inline"
+              title={`${session.definition.name} - Level ${selectedLevel}`}
+              onResolved={(score) => {
+                setLastScore(score);
+              }}
+              session={session}
+            />
           ) : null}
 
           <div className="support-qte-results">

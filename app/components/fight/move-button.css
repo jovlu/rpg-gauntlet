@@ -9,6 +9,13 @@
   transition: transform 150ms, border-color 150ms, filter 150ms;
 }
 
+.fight-move-button-supercharged {
+  border-color: rgba(255, 206, 98, 0.64);
+  box-shadow:
+    0 0 0 1px rgba(255, 226, 150, 0.18),
+    0 0 24px rgba(255, 184, 66, 0.18);
+}
+
 .fight-move-button:hover {
   transform: translateY(-1px);
   border-color: #b9ebff;

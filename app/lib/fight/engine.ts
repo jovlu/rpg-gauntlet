@@ -11,6 +11,9 @@ import type {
 
 export const MOVE_COOLDOWN_TURNS = 2;
 export const DEFAULT_QTE_MULTIPLIER = 1;
+export const MOVE_SUPERCHARGE_TURNS = 3;
+export const MIN_SUPERCHARGE_MULTIPLIER = 0.5;
+export const MAX_SUPERCHARGE_MULTIPLIER = 2.5;
 
 function toCombatStats(stats: CombatStats | PlayerStats): CombatStats {
   return {
@@ -44,13 +47,15 @@ function cloneCombatant(combatant: BattleCombatant): BattleCombatant {
     baseStats: { ...combatant.baseStats },
     statModifiers: { ...combatant.statModifiers },
     cooldowns: { ...combatant.cooldowns },
+    movesSinceSupercharge: combatant.movesSinceSupercharge,
+    superchargeReady: combatant.superchargeReady,
     activeStatuses: combatant.activeStatuses.map(cloneStatus),
     moves: [...combatant.moves],
   };
 }
 
 function clampQteMultiplier(qteMultiplier: number) {
-  return Math.max(0, Math.min(1, qteMultiplier));
+  return Math.max(0, Math.min(MAX_SUPERCHARGE_MULTIPLIER, qteMultiplier));
 }
 
 function createStatusId(sourceSide: BattleSide, moveId: string, stat: StatKey) {
@@ -200,6 +205,18 @@ function tickCooldowns(combatant: BattleCombatant, usedMoveId: string) {
   combatant.cooldowns[usedMoveId] = MOVE_COOLDOWN_TURNS;
 }
 
+function tickSupercharge(combatant: BattleCombatant, usedSupercharge: boolean) {
+  if (usedSupercharge) {
+    combatant.movesSinceSupercharge = 0;
+    combatant.superchargeReady = false;
+    return;
+  }
+
+  const nextCount = combatant.movesSinceSupercharge + 1;
+  combatant.movesSinceSupercharge = Math.min(MOVE_SUPERCHARGE_TURNS, nextCount);
+  combatant.superchargeReady = nextCount >= MOVE_SUPERCHARGE_TURNS;
+}
+
 function tickActorStatuses(combatant: BattleCombatant, skipIds: Set<string>) {
   const expiredStatusIds: string[] = [];
 
@@ -249,6 +266,8 @@ export function createBattleCombatant(
     baseStats,
     statModifiers: createEmptyModifiers(),
     cooldowns: createCooldownMap(data.moves),
+    movesSinceSupercharge: 0,
+    superchargeReady: false,
     activeStatuses: [],
     moves: data.moves,
   };
@@ -289,6 +308,10 @@ export function canUseMove(combatant: BattleCombatant, moveId: string) {
   return (combatant.cooldowns[moveId] ?? 0) <= 0 && Boolean(getMoveById(combatant, moveId));
 }
 
+export function isCombatantSuperchargeReady(combatant: BattleCombatant) {
+  return combatant.superchargeReady;
+}
+
 export function chooseRandomMove(combatant: BattleCombatant, rng = Math.random) {
   const availableMoves = getAvailableMoves(combatant);
 
@@ -305,6 +328,7 @@ function buildActionSummary(input: {
   target: BattleSide;
   move: Move;
   qteMultiplier: number;
+  wasSupercharged: boolean;
   damageDealt: number;
   selfDamageDealt: number;
   healingDone: number;
@@ -318,6 +342,7 @@ function buildActionSummary(input: {
     moveId: input.move.id,
     moveName: input.move.name,
     qteMultiplier: input.qteMultiplier,
+    wasSupercharged: input.wasSupercharged,
     damageDealt: input.damageDealt,
     selfDamageDealt: input.selfDamageDealt,
     healingDone: input.healingDone,
@@ -353,6 +378,7 @@ export function resolveBattleAction(
   }
 
   const qte = clampQteMultiplier(qteMultiplier);
+  const wasSupercharged = actor.superchargeReady;
   const actorStats = getEffectiveStats(actor);
 
   const physicalDamage = Math.max(
@@ -402,6 +428,7 @@ export function resolveBattleAction(
   );
   const expiredStatusIds = tickActorStatuses(actor, skipActorTickIds);
   tickCooldowns(actor, move.id);
+  tickSupercharge(actor, wasSupercharged);
   rebuildCombatantState(actor);
   rebuildCombatantState(target);
 
@@ -411,6 +438,7 @@ export function resolveBattleAction(
     target: targetSide,
     move,
     qteMultiplier: qte,
+    wasSupercharged,
     damageDealt,
     selfDamageDealt,
     healingDone: totalHealingDone,

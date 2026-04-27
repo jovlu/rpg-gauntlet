@@ -6,6 +6,9 @@ import {
   chooseRandomMove,
   createBattleState,
   getAvailableMoves,
+  isCombatantSuperchargeReady,
+  MAX_SUPERCHARGE_MULTIPLIER,
+  MIN_SUPERCHARGE_MULTIPLIER,
   resolveBattleAction,
 } from "./engine";
 import { pickBattleQte, type BattleQteSession } from "./qte-rules";
@@ -67,13 +70,21 @@ function formatActionDetail(state: BattleState | null) {
     );
   }
 
-  const summary = parts.length > 0 ? parts.join(" • ") : "No effect.";
+  const summary = parts.length > 0 ? parts.join(" | ") : "No effect.";
 
   if (state?.winner) {
-    return `${summary} • ${getWinnerMessage(state)}`;
+    return `${summary} | ${getWinnerMessage(state)}`;
   }
 
   return summary;
+}
+
+function toSuperchargeMultiplier(score: number) {
+  const normalizedScore = Math.max(0, Math.min(1, score));
+  return (
+    MIN_SUPERCHARGE_MULTIPLIER +
+    normalizedScore * (MAX_SUPERCHARGE_MULTIPLIER - MIN_SUPERCHARGE_MULTIPLIER)
+  );
 }
 
 export function useBattleController(seed: BattleSeed | null, qtes: QteDefinition[]) {
@@ -186,14 +197,17 @@ export function useBattleController(seed: BattleSeed | null, qtes: QteDefinition
     currentState: BattleState,
     moveId: string,
     moveName: string,
-    qteMultiplier: number,
+    appliedMultiplier: number,
   ) => {
-    const nextState = resolveBattleAction(currentState, moveId, qteMultiplier);
+    const nextState = resolveBattleAction(currentState, moveId, appliedMultiplier);
     commitState(nextState);
-    presentMessage(
-      `${currentState.player.name} uses ${moveName}.`,
-      `${Math.round(qteMultiplier * 100)}% timing • ${formatActionDetail(nextState)}`,
-    );
+
+    const nextDetail =
+      appliedMultiplier === 1
+        ? formatActionDetail(nextState)
+        : `${Math.round(appliedMultiplier * 100)}% surge | ${formatActionDetail(nextState)}`;
+
+    presentMessage(`${currentState.player.name} uses ${moveName}.`, nextDetail);
 
     if (nextState.winner) {
       setPhase("finished");
@@ -224,11 +238,13 @@ export function useBattleController(seed: BattleSeed | null, qtes: QteDefinition
       return;
     }
 
-    const qteSession = pickBattleQte(
-      qtes,
-      move,
-      Math.max(currentState.player.level, currentState.enemy.level),
-    );
+    const qteSession = isCombatantSuperchargeReady(currentState.player)
+      ? pickBattleQte(
+          qtes,
+          move,
+          Math.max(currentState.player.level, currentState.enemy.level),
+        )
+      : null;
 
     if (!qteSession) {
       resolvePlayerMove(currentState, move.id, move.name, 1);
@@ -246,7 +262,7 @@ export function useBattleController(seed: BattleSeed | null, qtes: QteDefinition
       return;
     }
 
-    const qteMultiplier = Math.max(0, Math.min(1, score));
+    const qteMultiplier = toSuperchargeMultiplier(score);
 
     setActiveQte(null);
     resolvePlayerMove(currentState, activeQte.moveId, activeQte.moveName, qteMultiplier);
