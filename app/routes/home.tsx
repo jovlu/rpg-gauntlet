@@ -4,7 +4,10 @@ import { useNavigate } from "react-router";
 import type { Route } from "./+types/home";
 import { MenuPanel } from "../components/menu-panel";
 import { enableAmbientAudio, playHoverSound } from "../lib/audio";
+import { apiUrl } from "../lib/config";
 import "./home.css";
+
+const API_WAKE_CHECK_MS = 5000;
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -14,11 +17,47 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Home() {
+  const [apiReady, setApiReady] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     enableAmbientAudio();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkApi = async () => {
+      try {
+        const response = await fetch(apiUrl("/player"));
+
+        if (!response.ok) {
+          throw new Error("API unavailable");
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        setApiReady(true);
+      } catch {
+        if (cancelled) {
+          return;
+        }
+
+        setApiReady(false);
+        window.setTimeout(() => {
+          void checkApi();
+        }, API_WAKE_CHECK_MS);
+      }
+    };
+
+    void checkApi();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleFullscreen = async () => {
@@ -40,6 +79,10 @@ export default function Home() {
   };
 
   const handleStartRun = async () => {
+    if (!apiReady) {
+      return;
+    }
+
     await handleFullscreen();
     navigate("/map");
   };
@@ -56,15 +99,16 @@ export default function Home() {
     <main className="home-screen relative grid min-h-screen place-items-center px-5 py-6">
       <MenuPanel
         fullscreenLabel="Enter fullscreen"
+        primaryDisabled={!apiReady}
         onFullscreen={() => {
           void handleFullscreen();
         }}
-        primaryLabel="Start a new run"
+        primaryLabel={apiReady ? "Start a new run" : "API coming up..."}
         onPrimary={() => {
           void handleStartRun();
         }}
         onExit={handleExitGame}
-        message={message}
+        message={message ?? (!apiReady ? "The Render server is waking up. Try again in a moment." : null)}
       />
     </main>
   );

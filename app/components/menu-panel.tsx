@@ -4,6 +4,7 @@ import "./menu-panel.css";
 type MenuPanelProps = {
   fullscreenLabel?: string;
   onFullscreen?: () => void;
+  primaryDisabled?: boolean;
   primaryLabel: string;
   onPrimary: () => void;
   onExit: () => void;
@@ -13,6 +14,7 @@ type MenuPanelProps = {
 export function MenuPanel({
   fullscreenLabel = "Toggle fullscreen",
   onFullscreen,
+  primaryDisabled = false,
   primaryLabel,
   onPrimary,
   onExit,
@@ -41,6 +43,7 @@ export function MenuPanel({
       <div className="mt-7 grid gap-3">
         <button
           className="menu-action-button"
+          disabled={primaryDisabled}
           type="button"
           onClick={onPrimary}
           {...hoverProps}

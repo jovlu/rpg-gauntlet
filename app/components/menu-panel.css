@@ -63,6 +63,26 @@
   outline-offset: 3px;
 }
 
+.menu-action-button:disabled {
+  cursor: wait;
+  border-color: #5e7399;
+  color: #c0d0e5;
+  background: linear-gradient(to bottom, #54627d, #384559);
+  box-shadow:
+    inset 0 -4px 0 rgba(12, 27, 47, 0.32),
+    0 6px 0 #14253d;
+  filter: saturate(0.7);
+}
+
+.menu-action-button:disabled:hover,
+.menu-action-button:disabled:active {
+  transform: none;
+  box-shadow:
+    inset 0 -4px 0 rgba(12, 27, 47, 0.32),
+    0 6px 0 #14253d;
+  filter: saturate(0.7);
+}
+
 .menu-status {
   margin-top: 1.25rem;
   color: #93ddff;
