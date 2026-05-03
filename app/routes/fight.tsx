@@ -21,6 +21,7 @@ import { getEnemyId } from "../components/map/utils";
 import { apiUrl } from "../lib/config";
 import { enableAmbientAudio, playHoverSound } from "../lib/audio";
 import type { Route } from "./+types/fight";
+import "./home.css";
 import "./fight.css";
 
 type FightEnemy = Enemy & { level: number };
@@ -36,7 +37,11 @@ type FightState = {
 type PostBattleState =
   | { type: "none" }
   | { type: "defeat" }
-  | { type: "victory"; learnedMoveName: string | null };
+  | {
+      type: "victory";
+      learnedMoveName: string | null;
+      continueTo: "/map" | "/congrats";
+    };
 
 const XP_REWARD_BY_LEVEL: Record<number, number> = {
   1: 1,
@@ -45,6 +50,17 @@ const XP_REWARD_BY_LEVEL: Record<number, number> = {
   4: 3,
   5: 4,
 };
+const POST_BATTLE_PRESENTATION_MS = 2600;
+
+function waitForPostBattlePresentation() {
+  if (typeof window === "undefined") {
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, POST_BATTLE_PRESENTATION_MS);
+  });
+}
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -63,11 +79,13 @@ export default function Fight({ params }: Route.ComponentProps) {
     playerMoves: [],
     qtes: [],
   });
+  const [fightLoaded, setFightLoaded] = useState(false);
   const [postBattleState, setPostBattleState] = useState<PostBattleState>({ type: "none" });
 
   useEffect(() => {
     enableAmbientAudio();
     victoryRewardAppliedRef.current = false;
+    setFightLoaded(false);
     setPostBattleState({ type: "none" });
 
     void loadFight();
@@ -110,6 +128,7 @@ export default function Fight({ params }: Route.ComponentProps) {
       qtes,
       enemy,
     });
+    setFightLoaded(true);
   };
 
   const player = fightState.player;
@@ -142,7 +161,10 @@ export default function Fight({ params }: Route.ComponentProps) {
 
     victoryRewardAppliedRef.current = true;
 
+    let cancelled = false;
+
     void (async () => {
+      const minimumPresentation = waitForPostBattlePresentation();
       const xpReward = XP_REWARD_BY_LEVEL[enemy.level] ?? enemy.level;
       let rewardedMoveName: string | null = null;
       const rewardRequests: Promise<Response>[] = [
@@ -211,24 +233,41 @@ export default function Fight({ params }: Route.ComponentProps) {
         // Keep the post-battle flow moving even if one reward write fails.
       }
 
-      if (enemy.level >= 5) {
-        navigate("/congrats");
+      await minimumPresentation;
+
+      if (cancelled) {
         return;
       }
 
       setPostBattleState({
         type: "victory",
         learnedMoveName: rewardedMoveName,
+        continueTo: enemy.level >= 5 ? "/congrats" : "/map",
       });
     })();
-  }, [battle.battleState?.winner, enemy, fightState.enemyMoves, navigate, player]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [battle.battleState?.winner, enemy, fightState.enemyMoves, player]);
 
   useEffect(() => {
     if (!battle.battleState?.winner || battle.battleState.winner === "player") {
       return;
     }
 
-    setPostBattleState({ type: "defeat" });
+    if (typeof window === "undefined") {
+      setPostBattleState({ type: "defeat" });
+      return;
+    }
+
+    const timerId = window.setTimeout(() => {
+      setPostBattleState({ type: "defeat" });
+    }, POST_BATTLE_PRESENTATION_MS);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
   }, [battle.battleState?.winner]);
 
   // Keep the route responsible for loading/gating state only.
@@ -238,7 +277,7 @@ export default function Fight({ params }: Route.ComponentProps) {
       <main className="home-screen fight-screen fight-screen-state px-5 py-6">
         <FightStatePanel
           actionLabel="Return To Map"
-          copy={enemy ? "Loading battle data..." : "That enemy could not be found."}
+          copy={fightLoaded ? "That enemy could not be found." : "Loading battle data..."}
           kicker="Preparing"
           onAction={() => navigate("/map")}
           title="Summoning The Arena"
@@ -261,26 +300,22 @@ export default function Fight({ params }: Route.ComponentProps) {
     );
   }
 
-  if (postBattleState.type === "defeat") {
-    return (
-      <main className="home-screen fight-screen fight-screen-state px-5 py-6">
-        <FightStatePanel
-          actionLabel="Return To Map"
-          copy="Nothing is lost. Return to the map and challenge this fight again when you are ready."
-          kicker="Defeat"
-          onAction={() => navigate("/map")}
-          title={`${enemy.name} Prevails`}
-        />
-      </main>
-    );
-  }
+  if (postBattleState.type !== "none") {
+    const isVictory = postBattleState.type === "victory";
+    const actionDestination = isVictory ? postBattleState.continueTo : "/map";
+    const resultCopy = isVictory
+      ? postBattleState.learnedMoveName
+        ? `You learned ${postBattleState.learnedMoveName}. It is now available in move management for future battles.`
+        : postBattleState.continueTo === "/congrats"
+          ? "The final opponent falls. The gauntlet is complete."
+          : "You already know every move this monster can teach."
+      : "Nothing is lost. Return to the map and challenge this fight again when you are ready.";
 
-  if (postBattleState.type === "victory") {
     return (
       <main className="home-screen fight-screen">
         <div className="fight-layout">
           {battle.battleState ? (
-            <div className="fight-stage-stack">
+            <div className="fight-stage-stack fight-stage-stack-finished">
               <BattleStage
                 enemy={battle.battleState.enemy}
                 messageDetail={battle.detail}
@@ -289,22 +324,25 @@ export default function Fight({ params }: Route.ComponentProps) {
                 showMessage={false}
                 stageMessageId={battle.stageMessageId}
               />
-              <section className="fight-stage-reward" aria-label="Battle reward">
-                <p className="fight-stage-reward-kicker">Victory</p>
-                <h1 className="fight-stage-reward-title">{enemy.name} Defeated</h1>
-                <p className="fight-stage-reward-copy">
-                  {postBattleState.learnedMoveName
-                    ? `You learned ${postBattleState.learnedMoveName}. It is now available in move management for future battles.`
-                    : "You already know every move this monster can teach."}
+              <section
+                className={`fight-stage-reward fight-stage-outcome fight-stage-outcome-${postBattleState.type}`}
+                aria-label="Battle result"
+              >
+                <p className="fight-stage-reward-kicker">
+                  {isVictory ? "Victory" : "Defeat"}
                 </p>
+                <h1 className="fight-stage-reward-title">
+                  {isVictory ? `${enemy.name} Defeated` : `${enemy.name} Prevails`}
+                </h1>
+                <p className="fight-stage-reward-copy">{resultCopy}</p>
                 <button
                   className="fight-toolbar-button"
                   type="button"
-                  onClick={() => navigate("/map")}
+                  onClick={() => navigate(actionDestination)}
                   onFocus={playHoverSound}
                   onMouseEnter={playHoverSound}
                 >
-                  Continue
+                  {isVictory ? "Continue" : "Return To Map"}
                 </button>
               </section>
             </div>
@@ -333,18 +371,20 @@ export default function Fight({ params }: Route.ComponentProps) {
         {/* Stage renders combatants; command panel owns move selection and battle copy. */}
         {battle.battleState ? (
           <>
-            <BattleStage
-              enemy={battle.battleState.enemy}
-              messageDetail={battle.detail}
-              messageHeadline={battle.headline}
-              player={battle.battleState.player}
-              showMessage={battle.showStageMessage}
-              stageMessageId={battle.stageMessageId}
-            />
-            <FightQteOverlay
-              onComplete={battle.completeQte}
-              session={battle.activeQte}
-            />
+            <div className="fight-stage-stack">
+              <BattleStage
+                enemy={battle.battleState.enemy}
+                messageDetail={battle.detail}
+                messageHeadline={battle.headline}
+                player={battle.battleState.player}
+                showMessage={battle.showStageMessage}
+                stageMessageId={battle.stageMessageId}
+              />
+              <FightQteOverlay
+                onComplete={battle.completeQte}
+                session={battle.activeQte}
+              />
+            </div>
             <MoveCommandPanel
               canAct={battle.playerCanAct}
               cooldowns={battle.battleState.player.cooldowns}

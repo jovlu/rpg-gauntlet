@@ -16,7 +16,7 @@ import type { BattleSeed, BattleState } from "./types";
 
 const MESSAGE_PRESENTATION_MS = 2600;
 
-export type BattlePhase = "idle" | "player-turn" | "qte" | "presenting" | "finished";
+export type BattlePhase = "idle" | "intro" | "player-turn" | "qte" | "presenting" | "finished";
 
 function getWinnerMessage(state: BattleState) {
   if (state.winner === "draw") {
@@ -162,9 +162,11 @@ export function useBattleController(seed: BattleSeed | null, qtes: QteDefinition
 
     const nextState = createBattleState(seed);
     commitState(nextState);
-    setPhase("player-turn");
-    setHeadline(`${seed.enemy.name} appeared.`);
-    setDetail("Choose your move.");
+    setPhase("intro");
+    presentMessage(`${seed.enemy.name} appeared.`, "Ready your move.");
+    queuePhaseChange(() => {
+      beginPlayerTurn(nextState);
+    });
 
     return () => {
       clearPhaseTimer();
@@ -345,7 +347,7 @@ export function useBattleController(seed: BattleSeed | null, qtes: QteDefinition
       !battleState.winner &&
       playerAvailableMoves.length > 0,
     selectPlayerMove,
-    showStageMessage: phase === "presenting" || phase === "finished",
+    showStageMessage: phase === "intro" || phase === "presenting" || phase === "finished",
     stageMessageId,
   };
 }
